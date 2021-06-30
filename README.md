@@ -27,15 +27,19 @@ get /getclass {"email", email, "classid", classid, "classname", classname,"durat
 
 ### 帶seesion或JWD先記住userID,用userID去Class table找classID(有什麼課)、classname、payment
 
-4.create class按鈕
+4.create class btn
 
 ### 彈出創造Class視窗
 return render_template(createclass.html) 
 
-5. create按鈕
-
+5. create btn
 post /createclass {"email" : email, "identity": identity, "classid": classid, "classname": classname, "payment":payment, "starttime":starttime, "endtime": endtime} 
 
+6. delete btn
+post /deleteclass {"classid": classid}
+
+7. addmember btn
+post/ addmember {"classid": classid, "email": email}
 
 
 
