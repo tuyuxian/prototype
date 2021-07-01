@@ -32,13 +32,13 @@ get /getclass {"email", email, "classid", classid, "classname", classname,"durat
 ### 彈出創造Class視窗
 return render_template(createclass.html) 
 
-5. create btn
+5.create btn
 post /createclass {"email" : email, "identity": identity, "classid": classid, "classname": classname, "payment":payment, "starttime":starttime, "endtime": endtime} 
 
-6. delete btn
+6.delete btn
 post /deleteclass {"classid": classid}
 
-7. addmember btn
+7.addmember btn
 post/ addmember {"classid": classid, "email": email}
 
 
