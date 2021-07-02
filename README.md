@@ -28,7 +28,7 @@ post /login {
 "password" : password,  
 "classid": classid,   
 "classname": classname  
-}
+}  
 {"status" : true or "status" : false}   
 // true -> at least one class  
 // false -> no class
@@ -71,7 +71,7 @@ post /createclass {
 #4.1.3 add member_confirm btn  
 post /addmember_confirm {  
 "classid": classid,   
-"AttenderEmail": AttenderEmail  
+"attenderemail": attenderemail  
 }  
   
 #4.1.4 deleteclass btn  
@@ -107,7 +107,6 @@ post /todolist {
 }  
   
 #4.2.3 create btn(todolist)  
-  
 post /todolist {  
 "classid": classid,  
 "classname": classname,  
@@ -123,7 +122,6 @@ post /todolist {
 ### Attendance Section  
   
 #4.3.1 attendance btn (e.g. python)  
-  
 post /attendanec_btn?classid=<> {  
 "classid": classid,  
 "classname": classname,  
@@ -191,7 +189,7 @@ post/ qa_btn?classid=<> {
 "reply": reply  
 }  
   
-#4.5.2/ 4.5.3 question btn & reply btn   
+#4.5.2 & 4.5.3 question btn & reply btn   
 update /classid=<> {  
 "qaID":qaID,  
 "classid": classid,  
@@ -212,8 +210,8 @@ get /account=<> {
 "status_parents": status_parents  
 }  
   
-#4.6.2 cofirm btn (my profile)  
-post/account=<> {  
+#4.6.2 confirm btn (my profile)  
+post /account=<> {  
 "name": name,  
 "oldpassword": oldpassword,  
 "newpassword": newpassword,  
@@ -222,11 +220,6 @@ post/account=<> {
 "status_student": status_student,   
 "status_parents": status_parents  
 }  
-  
-{  
-"name": name,  
-"oldpassword": password,  
-"phone": phone  
-}  
+{"name": name, "oldpassword": password, "phone": phone}  
 // any pwd is allowed except for the last time pwd  
   
