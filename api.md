@@ -34,10 +34,14 @@ post /login {
 // false -> no class
 
 
-### Status Selection
-#3  
-
-need discuss here  
+### Status Selection  
+  
+#3 statusselect  
+  
+post/ statusselect {  
+"email": email,  
+"status": (1,2,3)  
+}
 
 
 ### Class Section (Default after Status)
