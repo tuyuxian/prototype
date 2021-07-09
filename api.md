@@ -15,7 +15,9 @@ post /register {
 "email" : email,  
 "password" : password,  
 "username" : username,  
-"identity": identity  
+"status_tutor": status_tutor,
+"status_student": status_student,
+"status_parents": status_parents
 }   
 {"status" : 200 or "status" : false}
 
@@ -48,22 +50,18 @@ post/ statusselect {
   
 #4.1.1  class btn  
 get /getclass {  
-"email": email,   
+"username": username,   
 "classid": classid,   
 "classname": classname,  
-"starttime": starttime,   
-"endtime": endtime,  
 "payment_hrs": payment_hrs,  
 "payment_time": payment_time  
 }   
 {"status" : true or "status" : false}  
-// true -> at least one class  
-// false -> no class  
-  
+
 #4.1.2 create btn (create class)  
 post /createclass {  
 "email" : email,   
-"classid": classid,   
+"classid": classid, 
 "classname": classname,   
 "weekday": weekday,   
 "starttime": starttime,   
@@ -79,15 +77,15 @@ post /addmember_confirm {
 }  
   
 #4.1.4 deleteclass btn  
-post /deleteclass {  
+delete /deleteclass {  
 "classid": classid  
 }  
-  
+
   
 ### To Do List Section
 
 #4.2.1 todolist btn  
-post /todolist {  
+get /todolist {  
 "classid": classid,  
 "classname": classname,  
 "date": date,  
@@ -99,11 +97,10 @@ post /todolist {
 }  
   
 #4.2.2 update btn (todolist)  
-post /todolist {  
+put /todolist {  
 "classid": classid,  
 "classname": classname,  
 "date": date,  
-"weekday" : weekday,   
 "starttime": starttime,  
 "endtime" : endtime,   
 "lesson": lesson,  
@@ -113,9 +110,7 @@ post /todolist {
 #4.2.3 create btn(todolist)  
 post /todolist {  
 "classid": classid,  
-"classname": classname,  
-"date": date,  
-"weekday" : weekday,   
+"date": date,   
 "starttime": starttime,  
 "endtime" : endtime,   
 "lesson": lesson,  
@@ -126,12 +121,12 @@ post /todolist {
 ### Attendance Section  
   
 #4.3.1 attendance btn (e.g. python)  
-post /attendanec_btn?classid=<> {  
+get /attendance/<classID> {  
 "classid": classid,  
 "classname": classname,  
 "date": date,  
-"startTime": starttime,  
-"endTime": endTime,  
+"starttime": starttime,  
+"endtime": endtime,  
 "check_tutor": check_tutor,  
 "check_student": check_student,  
 "check_parents": check_parents,  
@@ -140,14 +135,13 @@ post /attendanec_btn?classid=<> {
 }  
   
 #4.3.2 confirm btn (attendance note)  
-post /notecomfirm {  
-"classid": classid,  
+put /note_confirm {  
 "attendanceID": attendanceID,  
 "note" : note  
 }  
   
 #4.3.3 confirm btn (attendance check)  
-post /attendance {  
+put /attendance_confirm {  
 "attendanceID": attendanceID,  
 "check_tutor": check_tutor,  
 "check_student": check_student,  
@@ -160,15 +154,14 @@ post /attendance_create {
 "date": date,  
 "starttime": starttime,  
 "endtime": endtime,  
-"note" : note,  
-"hrs": hrs  
+"note" : note  
 }  
   
 
 ### Summary Section  
   
 #4.4.1  
-post /attendanec_btn?classid=<> {  
+get /attendanec_btn?classid=<> {  
 "classid": classid,  
 "classname": classname,  
 "date": date,  
@@ -185,7 +178,7 @@ post /attendanec_btn?classid=<> {
 ### Q/A Section  
   
 #4.5.1 q/a btn (e.g. python)  
-post/ qa_btn?classid=<> {  
+get /qa_btn?classid=<> {  
 "classid": classid,  
 "classname": classname,  
 "date": date,  
@@ -194,7 +187,7 @@ post/ qa_btn?classid=<> {
 }  
   
 #4.5.2 & 4.5.3 question btn & reply btn   
-update /classid=<> {  
+post /classid=<> {  
 "qaID":qaID,  
 "classid": classid,  
 "question":question,  
