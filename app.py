@@ -522,15 +522,14 @@ def confirm_btn():
 
         if query_account_update != None:
             # Update account info into Account table.
-            DB_pwd = query_account_update.password
-            hash_DB_pwd = bcrypt.generate_password_hash(DB_pwd)
-            if not bcrypt.check_password_hash(hash_DB_pwd, oldpassword):
+            DB_pwd = query_account_update.password  # have hashed
+            if not bcrypt.check_password_hash(DB_pwd, oldpassword):
                 return dict(status=False, message='old password is Wrong')
             else:
                 if bcrypt.check_password_hash(hash_newpassword, oldpassword):
                     return dict(status=False, message='new password is same as the old one')
                 else:
-                    query_account_update.password = newpassword
+                    query_account_update.password = hash_newpassword
 
             # Update other info
             query_account_update.username = request.args.get(
