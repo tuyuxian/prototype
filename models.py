@@ -5,7 +5,7 @@ from datetime import datetime
 class Account(db.Model):
     __tablename__ = 'Account'
     email = db.Column(db.String(100), primary_key=True, unique=True)
-    password = db.Column(db.String(20))
+    password = db.Column(db.String(100))
     username = db.Column(db.String(20))
     phone = db.Column(db.String(11))
     status_tutor = db.Column(db.Boolean)
