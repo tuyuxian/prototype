@@ -1,7 +1,7 @@
 import uuid
 from models import *
 from extension import db, date_calculate, hrs_calculate, get_weekday, time_type, date_type
-from flask import Flask, render_template, request, jsonify, session, flash, redirect, logging, url_for
+from flask import Flask, json, render_template, request, jsonify, session, flash, redirect, logging, url_for
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_bcrypt import Bcrypt
 from datetime import timedelta
@@ -101,6 +101,7 @@ def login():
 
 @app.route('/logout')
 def logout():
+    # api 2.1
     # Removing data from session by setting logged_flag to False.
     session['logged_in'] = False
     session.clear()
@@ -108,8 +109,8 @@ def logout():
     return 'Bye'
 
 
-@app.route('/statusSelect', methods=['GET'])
-def statusSelect():
+@app.route('/status', methods=['GET'])
+def status_select():
     # api 3
     email = session.get('email')
     # status_tutor = session.get('status_tutor')
@@ -132,8 +133,8 @@ def statusSelect():
         return jsonify({'status': False, 'note': True})
 
 
-@app.route('/getclass', methods=['GET'])
-def getclass():
+@app.route('/class', methods=['GET'])
+def get_class():
     # api 4.1.1
     email = session.get('email')
     filters_class = {'tutorEmail': email}
@@ -141,15 +142,19 @@ def getclass():
     query_class = Class.query.filter_by(**filters_class).all()
     query_account = Account.query.filter_by(**filters_account).first()
     if query_class != None:
-        class_data = [{'username': query_account.username}, [{'classid': item.classID, 'classname': item.className,
-                                                              'payment_hrs': item.payment_hrs, 'payment_time': item.payment_time} for item in query_class]]
-        return jsonify(class_data)
+        class_data = [{
+            'classid': item.classID,
+            'classname': item.className,
+            'payment_hrs': item.payment_hrs,
+            'payment_time': item.payment_time
+        } for item in query_class]
+        return jsonify(username=query_account.username, all_class=class_data)
     else:
-        return dict(status=False, message='No class in this account.')
+        return jsonify(status=False, message='No class in this account.')
 
 
-@app.route('/createclass', methods=['POST'])
-def createclass():
+@app.route('/class/create', methods=['POST'])
+def create_class():
     # api 4.1.2
     tutorEmail = session.get('email')
     className = request.args.get('classname')
@@ -157,7 +162,7 @@ def createclass():
     query_classname = Class.query.filter_by(**filters_classname).first()
     if query_classname != None:
         # Same class name already in this account -> ask user to use another name.
-        return dict(status=False, message='This class is already in your account. Use tag like xxx_1 to name the class.')
+        return jsonify(status=False, message='This class is already in your account. Use tag like xxx_1 to name the class.')
     else:
         try:
             classID = str(uuid.uuid4())
@@ -172,24 +177,44 @@ def createclass():
                 startdate, enddate, weekday, starttime, endtime)
             all_date = [item for item in all_date]
             # Insert new class into three tables.
-            class_init = Class(classID, className, tutorEmail, int(
-                payment_hrs), int(payment_time), ' ')
+            class_init = Class(
+                classID,
+                className,
+                tutorEmail,
+                int(payment_hrs),
+                int(payment_time),
+                ' ')
             class_time = [Class_Time(
-                classID, item[0], item[1], item[2], item[3], ' ', ' ') for item in all_date]
+                classID,
+                item[0],
+                item[1],
+                item[2],
+                item[3],
+                ' ',
+                ' ',
+                0) for item in all_date]
             attendance = [Attendance(
-                classID, item[0], item[2], item[3], 0, 0, 0, ' ', hrs_calculate(item[2], item[3])) for item in all_date]
+                classID,
+                item[0],
+                item[2],
+                item[3],
+                0,
+                0,
+                0,
+                ' ',
+                hrs_calculate(item[2], item[3])) for item in all_date]
 
             db.session.add(class_init)
             db.session.add_all(class_time)
             db.session.add_all(attendance)
             db.session.commit()
-            return dict(status=True)
+            return jsonify(status=True)
         except:
-            return dict(status=False, message='Create class failed.')
+            return jsonify(status=False, message='Create class failed.')
 
 
-@app.route('/addmember_confirm', methods=['POST'])
-def addmember_confirm():
+@app.route('/class/addmember', methods=['POST'])
+def add_member():
     # api 4.1.3
     try:
         classID = request.args.get('classid')
@@ -212,76 +237,90 @@ def addmember_confirm():
                           for item in new_attender]
         db.session.add_all(class_attender)
         db.session.commit()
-        return dict(status=True, message=exist_attender)
+        return jsonify(status=True, duplicate_attender=exist_attender)
     except:
-        return dict(status=False, message='Add member failed.')
+        return jsonify(status=False, message='Add member failed.')
 
 
-@app.route('/deleteclass', methods=['DELETE'])
-def deleteclass():
+@app.route('/class/delete', methods=['DELETE'])
+def delete_class():
     # api 4.1.4
     try:
         classID = request.args.get('classid')
-        filters = {'classID': classID}
+        filters_class_delete = {'classID': classID}
         # Keep the record in Attendance, Class_Attender and QA tables.
-        Class.query.filter_by(**filters).delete()
-        Class_Time.query.filter_by(**filters).delete()
+        Class.query.filter_by(**filters_class_delete).delete()
+        Class_Time.query.filter_by(**filters_class_delete).delete()
         db.session.commit()
-        return dict(status=True)
+        return jsonify(status=True)
     except:
-        return dict(status=False, message='Delete class failed.')
+        return jsonify(status=False, message='Delete class failed.')
 
 
-@app.route('/todolist', methods=['GET', 'POST', 'PUT'])
+# 2021-07-10
+# Seperate todolist page to
+# todolist (api 4.2.1)
+# todolist/upcoming (api 4.2.7)
+# todolist/done (api 4.2.8)
+@app.route('/todolist', methods=['GET'])
 def todolist():
     # api 4.2.1
+    # Use session to get email and status.
+    email = session.get('email')
+    user_status = session.get('user_status')
+
+    case = user_status  # 1 for tutor, 2 for student and 3 for parents.
+    if case == 1:
+        try:
+            filters_tutor = {'tutorEmail': email}
+            query_class = Class.query.filter_by(**filters_tutor).all()
+            class_dic = {item.className: item.classID for item in query_class}
+            return jsonify(status=True, class_list=class_dic)
+        except:
+            return jsonify(status=False, message='Get todolist failed.')
+
+    elif (case == 2) or (case == 3):
+        try:
+            filters_attender = {'attenderEmail': email}
+            query_class = Class_Attender.query.filter_by(
+                **filters_attender).all()
+            class_dic = {}
+            for item in query_class:
+                filters_classid = {'classID': item.classID}
+                query_class_name = Class.query.filter_by(
+                    **filters_classid).first()
+                class_dic[query_class_name.className] = item.classID
+            return jsonify(status=True, class_list=class_dic)
+        except:
+            return jsonify(status=False, message='Get todolist failed.')
+
+
+@app.route('/todolist/upcoming', methods=['GET', 'POST', 'PUT'])
+def todolist_upcoming():
+    # api 4.2.7
     if request.method == 'GET':
-        # Use session to get email and status.
-        email = session.get('email')
-        user_status = session.get('user_status')
-
-        case = user_status  # 1 for tutor, 2 for student and 3 for parents.
-        if case == 1:
-            try:
-                filters_tutor = {'tutorEmail': email}
-                query_class = Class.query.filter_by(**filters_tutor).all()
-                class_lst = [[item.classID, item.className]
-                             for item in query_class]
-                todo_dic = {}
-                for item in class_lst:
-                    filters_classid = {'classID': item[0]}
-                    query_class_time = Class_Time.query.filter_by(
-                        **filters_classid).all()
-                    todo = [{'classtimeID': info.classtimeID, 'classid': info.classID, 'classname': item[1], 'date':date_type(info.date), 'weekday':info.weekday,
-                             'starttime':time_type(info.starttime), 'endtime':time_type(info.endtime), 'lesson':info.lesson, 'hw':info.hw} for info in query_class_time]
-                    todo_dic[item[1]] = todo
-                return jsonify(todo_dic)
-            except:
-                return dict(status=False, message='Get todolist failed.')
-
-        elif (case == 2) or (case == 3):
-            try:
-                filters_attender = {'attenderEmail': 'cylt2212@gmail.com'}
-                query_class = Class_Attender.query.filter_by(
-                    **filters_attender).all()
-                class_lst = []
-                for item in query_class:
-                    filters_classid = {'classID': item.classID}
-                    query_class_name = Class.query.filter_by(
-                        **filters_attender).first()
-                    class_lst.append(
-                        [item.classID, query_class_name.className])
-                todo_dic = {}
-                for item in class_lst:
-                    filters_classid = {'classID': item[0]}
-                    query_class_time = Class_Time.query.filter_by(
-                        **filters_classid).all()
-                    todo = [{'classtimeID': info.classtimeID, 'classid': info.classID, 'classname': item[1], 'date':date_type(info.date), 'weekday':info.weekday,
-                             'starttime':time_type(info.starttime), 'endtime':time_type(info.endtime), 'lesson':info.lesson, 'hw':info.hw} for info in query_class_time]
-                    todo_dic[item[1]] = todo
-                return jsonify(todo_dic)
-            except:
-                return dict(status=False, message='Get todolist failed.')
+        try:
+            classID = request.args.get('classid')
+            filters_classid = {'classID': classID}
+            query_todo = Class_Time.query.filter_by(**filters_classid).all()
+            query_class_name = Class.query.filter_by(**filters_classid).first()
+            todo_lst = []
+            for item in query_todo:
+                if item.done == 0:  # 0 for upcoming ; 1 for done.
+                    todo = {
+                        'classtimeID': item.classtimeID,
+                        'classid': item.classID,
+                        'date': date_type(item.date),
+                        'weekday': item.weekday,
+                        'starttime': time_type(item.starttime),
+                        'endtime': time_type(item.endtime),
+                        'lesson': item.lesson,
+                        'hw': item.hw
+                    }
+                    todo_lst.append(todo)
+            return jsonify(status=True, classname=query_class_name.className, todo_item=todo_lst)
+        except:
+            return jsonify(status=False, message='Get todolist upcoming failed.')
 
     # api 4.2.2
     elif request.method == 'PUT':
@@ -294,7 +333,7 @@ def todolist():
             lesson = request.args.get('lesson')
             hw = request.args.get('hw')
             if hrs_calculate(starttime, endtime) <= 0:
-                return dict(status=False, message='Time input error.')
+                return jsonify(status=False, message='Time input error.')
             # Update new info into Class_Time table.
             filters_todolist_update = {'classtimeID': classtimeID}
             query_todolist_update = Class_Time.query.filter_by(
@@ -314,9 +353,9 @@ def todolist():
             query_attendance_update.endtime = endtime
             query_attendance_update.hrs = hrs_calculate(starttime, endtime)
             db.session.commit()
-            return dict(status=True)
+            return jsonify(status=True)
         except:
-            return dict(status=False, message='Create todolist failed.')
+            return jsonify(status=False, message='Create todolist failed.')
     # api 4.2.3
     elif request.method == 'POST':
         try:
@@ -327,22 +366,132 @@ def todolist():
             lesson = request.args.get('lesson')
             hw = request.args.get('hw')
             if hrs_calculate(starttime, endtime) <= 0:
-                return dict(status=False, message='Time input error.')
+                return jsonify(status=False, message='Time input error.')
             # Insert new todolist into Class_Time table.
-            newClassTime = Class_Time(classID, date, get_weekday(
-                date), starttime, endtime, lesson, hw)
+            newClassTime = Class_Time(
+                classID,
+                date,
+                get_weekday(date),
+                starttime,
+                endtime,
+                lesson,
+                hw,
+                0)
             db.session.add(newClassTime)
             # Insert new attendance into Attendance table.
             newAttendance = Attendance(
-                classID, date, starttime, endtime, 0, 0, 0, ' ', hrs_calculate(starttime, endtime))
+                classID,
+                date,
+                starttime,
+                endtime,
+                0,
+                0,
+                0,
+                ' ',
+                hrs_calculate(starttime, endtime))
             db.session.add(newAttendance)
             db.session.commit()
-            return dict(status=True)
+            return jsonify(status=True)
         except:
-            return dict(status=False, message='Create todolist failed.')
+            return jsonify(status=False, message='Create todolist failed.')
 
 
-@app.route('/attendance/<classID>', methods=["GET"])
+# 2021-07-10
+# Add route
+# todolist/upcoming/delete (api 4.2.4)
+# todolist/upcoming/finished (api 4.2.5)
+# todolist/done/undo (api 4.2.6)
+@app.route('/todolist/upcoming/delete', methods=['DELETE'])
+def delete_todolist():
+    # api 4.2.4
+    try:
+        classtimeID = request.args.get('classtimeid')
+        # Delete todolist item directly will also delete attendance item.
+        filters_todolist_delete = {'classtimeID': classtimeID}
+        filters_attendance_delete = {'attendanceID': classtimeID}
+        Class_Time.query.filter_by(**filters_todolist_delete).delete()
+        Attendance.query.filter_by(**filters_attendance_delete).delete()
+        db.session.commit()
+        return jsonify(status=True)
+    except:
+        return jsonify(status=False, message='Delete todolist failed.')
+
+
+@app.route('/todolist/upcoming/finished', methods=['POST'])
+def finished_todolist():
+    # api 4.2.5
+    try:
+        classtimeID = request.args.get('classtimeid')
+        # Update the data to Todolist_Done table first.
+        filters_todolist_done = {'classtimeID': classtimeID}
+        query_todolist_done = Class_Time.query.filter_by(
+            **filters_todolist_done).first()
+        todolist_backup = Todolist_Done(
+            query_todolist_done.classtimeID,
+            query_todolist_done.classID,
+            date_type(query_todolist_done.date),
+            get_weekday(date_type(query_todolist_done.date)),
+            time_type(query_todolist_done.starttime),
+            time_type(query_todolist_done.endtime),
+            query_todolist_done.lesson,
+            query_todolist_done.hw)
+        db.session.add(todolist_backup)
+        # Udpate the "done" column of the classtime item in Class_Time
+        query_todolist_done.done = 1
+        db.session.commit()
+        return jsonify(status=True)
+    except:
+        return jsonify(status=False, message='Todo item done failed.')
+
+
+@app.route('/todolist/done', methods=['GET'])
+def todolist_done():
+    # api 4.2.8
+    try:
+        classID = request.args.get('classid')
+        filters_classid = {'classID': classID}
+        query_todo = Class_Time.query.filter_by(**filters_classid).all()
+        query_class_name = Class.query.filter_by(**filters_classid).first()
+        todo_lst = []
+        for item in query_todo:
+            if item.done == 1:  # 0 for upcoming ; 1 for done.
+                todo = {
+                    'classtimeID': item.classtimeID,
+                    'classid': item.classID,
+                    'date': date_type(item.date),
+                    'weekday': item.weekday,
+                    'starttime': time_type(item.starttime),
+                    'endtime': time_type(item.endtime),
+                    'lesson': item.lesson,
+                    'hw': item.hw
+                }
+                todo_lst.append(todo)
+        return jsonify(status=True, classname=query_class_name.className, todo_item_done=todo_lst)
+    except:
+        return jsonify(status=False, message='Get todolist done failed.')
+
+
+@app.route('/todolist/done/undo', methods=['PUT'])
+def recover_todolist():
+    # api 4.2.6
+    try:
+        origin_classtimeID = request.args.get('classtimeID')
+        # Recover the data to Class_Time table first.
+        filters_todolist_undo = {'classtimeID': origin_classtimeID}
+        query_todolist_undo = Class_Time.query.filter_by(
+            **filters_todolist_undo).first()
+        query_todolist_undo.done = 0
+        # Delete the data in Todolist_Done
+        filters_todolist_done_delete = {
+            'origin_classtimeID': origin_classtimeID}
+        Todolist_Done.query.filter_by(**filters_todolist_done_delete).delete()
+        db.session.commit()
+        return jsonify(status=True)
+    except:
+        return jsonify(status=False, message='Recover todo item failed.')
+
+
+@app.route('/attendance/<classID>', methods=['GET'])
 def attendance(classID):
     # api 4.3.1 & 4.4.1
     try:
@@ -351,15 +500,15 @@ def attendance(classID):
             **filters_attendance).first()
         query_attendance = Attendance.query.filter_by(
             **filters_attendance).all()
-        attendance_lst = [{'classID': classID, 'classname': query_class_name.className, 'date': date_type(item.date), 'starttime': time_type(item.starttime), 'endtime': time_type(item.endtime),
+        attendance_lst = [{'classID': classID, 'date': date_type(item.date), 'starttime': time_type(item.starttime), 'endtime': time_type(item.endtime),
                            'check_tutor': item.check_tutor, 'check_studet': item.check_student, 'check_parents': item.check_parents, 'note': item.note, 'hrs': item.hrs} for item in query_attendance]
-        return jsonify(attendance_lst)
+        return jsonify(status=True, classname=query_class_name.className, attendance_item=attendance_lst)
     except:
-        return dict(status=False, message='Get attendance info failed.')
+        return jsonify(status=False, message='Get attendance info failed.')
 
 
-@app.route('/note_confirm', methods=['PUT'])
-def note_confirm():
+@app.route('/attendance/note', methods=['PUT'])
+def attendance_note():
     # api 4.3.2
     try:
         attendanceID = request.args.get('attendanceid')
@@ -370,13 +519,13 @@ def note_confirm():
             **filters_note_update).first()
         query_note_update.note = note
         db.session.commit()
-        return dict(status=True)
+        return jsonify(status=True)
     except:
-        return dict(status=False, message='Note confirm failed.')
+        return jsonify(status=False, message='Note confirm failed.')
 
 
-@app.route('/attendance_confirm', methods=['PUT'])
-def attendance_confirm():
+@app.route('/attendance/check', methods=['PUT'])
+def attendance_check():
     # api 4.3.3
     try:
         attendanceID = request.args.get('attendanceid')
@@ -391,13 +540,13 @@ def attendance_confirm():
         query_note_update.check_student = int(check_student)
         query_note_update.check_parents = int(check_parents)
         db.session.commit()
-        return dict(status=True)
+        return jsonify(status=True)
     except:
-        return dict(status=False, message='Attendance confirm failed.')
+        return jsonify(status=False, message='Attendance confirm failed.')
 
 
-@app.route('/attendance_create', methods=['POST'])
-def attendance_create():
+@app.route('/attendance/create', methods=['POST'])
+def create_attendance():
     # api 4.3.4
     try:
         classID = request.args.get('classid')
@@ -406,23 +555,38 @@ def attendance_create():
         endtime = request.args.get('endtime')
         note = request.args.get('note')
         if hrs_calculate(starttime, endtime) <= 0:
-            return dict(status=False, message='Time input error.')
+            return jsonify(status=False, message='Time input error.')
         # Insert new attendance into Attendance table.
         newAttendance = Attendance(
-            classID, date, starttime, endtime, 0, 0, 0, note, hrs_calculate(starttime, endtime))
+            classID,
+            date,
+            starttime,
+            endtime,
+            0,
+            0,
+            0,
+            note,
+            hrs_calculate(starttime, endtime))
         db.session.add(newAttendance)
         # Insert new attendance into Class_Time table.
-        newClassTime = Class_Time(classID, date, get_weekday(
-            date), starttime, endtime, ' ', ' ')
+        newClassTime = Class_Time(
+            classID,
+            date,
+            get_weekday(date),
+            starttime,
+            endtime,
+            ' ',
+            ' ',
+            0)
         db.session.add(newClassTime)
         db.session.commit()
-        return dict(status=True)
+        return jsonify(status=True)
     except:
-        return dict(status=False, message='Create new attendance item failed.')
+        return jsonify(status=False, message='Create new attendance item failed.')
 
 
-# Q/A Section
-@app.route('/qa_btn/<classID>', methods=['GET', 'POST'])
+# QA Section
+@app.route('/QA/<classID>', methods=['GET', 'POST'])
 def qa_btn(classID):
     # api 4.5.1 q/a btn
     if request.method == 'GET':
@@ -438,10 +602,10 @@ def qa_btn(classID):
                                                                      'question': item.question, 'reply': item.reply} for item in query_qa]]
                 return jsonify(qa_data)
         except:
-            return dict(status=False, message='Get QA info failed.')
+            return jsonify(status=False, message='Get QA info failed.')
 
 
-@app.route('/question_btn/<classID>', methods=['POST'])
+@app.route('/QA/question/<classID>', methods=['POST'])
 def question_btn(classID):
     # api 4.5.2 question_btn
     if request.method == 'POST':
@@ -454,17 +618,17 @@ def question_btn(classID):
         query_qa = QA.query.filter_by(**filters_classid).all()
         print('query_qa={}'.format(query_qa))
         if query_qa == None:
-            return dict(status=False, message='classID is Wrong.')
+            return jsonify(status=False, message='classID is Wrong.')
         else:
             # Insert new question into QA table.
             newquestion = QA(classID, date, question, '')  # reply default ''
             print('newquestion={}'.format(newquestion))
             db.session.add(newquestion)
             db.session.commit()
-            return dict(status=True)
+            return jsonify(status=True)
 
 
-@app.route('/reply_btn/<classID>', methods=['POST'])
+@app.route('/QA/reply/<classID>', methods=['POST'])
 def reply_btn(classID):
     # api 4.5.3 reply btn
     if request.method == 'POST':
@@ -480,15 +644,15 @@ def reply_btn(classID):
             if query_qa != None:
                 query_qa.reply = reply
                 db.session.commit()
-                return dict(status=True)
+                return jsonify(status=True)
             else:
-                return dict(status=False, message='query_qa is None.')
+                return jsonify(status=False, message='query_qa is None.')
         except:
-            return dict(status=False, message='Create question_btn failed.')
+            return jsonify(status=False, message='Create question_btn failed.')
 
 
 # My Profile Section
-@app.route('/myprofile_btn', methods=['GET'])
+@app.route('/myprofile', methods=['GET'])
 def myprofile_btn():
     # api 4.6.1 myprofile btn
     try:
@@ -501,13 +665,13 @@ def myprofile_btn():
                         "status_tutor": query_account.status_tutor, "status_student": query_account.status_student, "status_parents": query_account.status_parents}]
         return jsonify(account_lst)
     except:
-        return dict(status=False, message='Get accoint info failed.')
+        return jsonify(status=False, message='Get accoint info failed.')
 
 
-@app.route('/confirm_btn', methods=['PUT'])
+@app.route('/myprofile/modify', methods=['PUT'])
 # pwd的部分還要修改(若儲存時就會是hash_pwd 則新輸入的不用hash就拿去比對，新存的也要為hash過的密碼)
-def confirm_btn():
-    # api 4.6.2 confirm_btn
+def myprofile_confirm():
+    # api 4.6.2 myprofile_confirm
     try:
         email = session.get('email')  # get paremeters from front-end
         filters_account = {'email': email}
@@ -524,10 +688,10 @@ def confirm_btn():
             # Update account info into Account table.
             DB_pwd = query_account_update.password  # have hashed
             if not bcrypt.check_password_hash(DB_pwd, oldpassword):
-                return dict(status=False, message='old password is Wrong')
+                return jsonify(status=False, message='old password is Wrong')
             else:
                 if bcrypt.check_password_hash(hash_newpassword, oldpassword):
-                    return dict(status=False, message='new password is same as the old one')
+                    return jsonify(status=False, message='new password is same as the old one')
                 else:
                     query_account_update.password = hash_newpassword
 
@@ -556,12 +720,12 @@ def confirm_btn():
                     if i == 2:
                         query_account_update.status_parents = new_status_parents
             db.session.commit()
-            return dict(status=True)
+            return jsonify(status=True)
         else:
-            return dict(status=False, message='query_account is None.')
+            return jsonify(status=False, message='query_account is None.')
     except Exception as ee:
         print(str(ee))
-        return dict(status=False, message='Get account info failed.')
+        return jsonify(status=False, message='Get account info failed.')
 
 
 if __name__ == '__main__':
