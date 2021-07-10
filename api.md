@@ -22,25 +22,26 @@ post /register {
 {"status" : 200 or "status" : false}
 
 
-### Login
+### Login/Logout
 
 #2 login  
 post /login {  
 "email" : email,  
-"password" : password,  
-"classid": classid,   
-"classname": classname  
+"password" : password,    
 }  
 {"status" : true or "status" : false}   
 // true -> at least one class  
-// false -> no class
+// false -> no class  
+  
 
-
+#2.1 get /logout {      
+}  
+  
+  
 ### Status Selection  
   
-#3 statusselect  
-  
-post/ statusselect {  
+#3 status select  
+post/ status {  
 "email": email,  
 "status": (1,2,3)  
 }
@@ -49,7 +50,7 @@ post/ statusselect {
 ### Class Section (Default after Status)
   
 #4.1.1  class btn  
-get /getclass {  
+get /class {  
 "username": username,   
 "classid": classid,   
 "classname": classname,  
@@ -59,7 +60,7 @@ get /getclass {
 {"status" : true or "status" : false}  
 
 #4.1.2 create btn (create class)  
-post /createclass {  
+post /class/create {  
 "email" : email,   
 "classid": classid, 
 "classname": classname,   
@@ -71,13 +72,13 @@ post /createclass {
 }  
   
 #4.1.3 add member_confirm btn  
-post /addmember_confirm {  
+post /class/addmember {  
 "classid": classid,   
 "attenderemail": attenderemail  
 }  
   
 #4.1.4 deleteclass btn  
-delete /deleteclass {  
+delete /class/delete {  
 "classid": classid  
 }  
 
@@ -87,17 +88,11 @@ delete /deleteclass {
 #4.2.1 todolist btn  
 get /todolist {  
 "classid": classid,  
-"classname": classname,  
-"date": date,  
-"weekday" : weekday,   
-"starttime": starttime,  
-"endtime": endtime,   
-"lesson": lesson,  
-"hw": hw  
+"classname": classname  
 }  
   
 #4.2.2 update btn (todolist)  
-put /todolist {  
+put /todolist/upcoming {  
 "classid": classid,  
 "classname": classname,  
 "date": date,  
@@ -108,7 +103,7 @@ put /todolist {
 }  
   
 #4.2.3 create btn(todolist)  
-post /todolist {  
+post /todolist/upcoming {  
 "classid": classid,  
 "date": date,   
 "starttime": starttime,  
@@ -116,8 +111,48 @@ post /todolist {
 "lesson": lesson,  
 "hw": hw  
 }  
-
-
+  
+#4.2.4 delete btn (todolist)  
+delete /todolist/upcoming/delete {  
+"classtimeid": classtimeid  
+}  
+  
+#4.2.5 finished btn (todolist)  
+post /todolist/upcoming/finished {  
+"classtimeid": classtimeid,  
+}  
+  
+#4.2.6 undo btn (todolist)
+put /todolist/done/undo {  
+    "classtimeid": classtimeid  
+}  
+  
+#4.2.7 upcoming btn (todolist)  
+get /todolist/upcoming {  
+"classtimeid": classtimeid,
+"classid": classid,  
+"classname": classname,  
+"date": date,  
+"weekday": weekday,  
+"starttime": starttime,  
+"endtime": endtime,  
+"lesson": lesson,  
+"hw": hw,  
+}  
+  
+#4.2.8 done btn (todolist)  
+get /todolist/done {  
+"classtimeid": classtimeid,
+"classid": classid,  
+"classname": classname,  
+"date": date,  
+"weekday": weekday,  
+"starttime": starttime,  
+"endtime": endtime,  
+"lesson": lesson,  
+"hw": hw,  
+}  
+  
 ### Attendance Section  
   
 #4.3.1 attendance btn (e.g. python)  
@@ -135,13 +170,13 @@ get /attendance/<classID> {
 }  
   
 #4.3.2 confirm btn (attendance note)  
-put /note_confirm {  
+put /attendance/note {  
 "attendanceID": attendanceID,  
 "note" : note  
 }  
   
 #4.3.3 confirm btn (attendance check)  
-put /attendance_confirm {  
+put /attendance/check {  
 "attendanceID": attendanceID,  
 "check_tutor": check_tutor,  
 "check_student": check_student,  
@@ -149,7 +184,7 @@ put /attendance_confirm {
 }  
   
 #4.3.4 create btn (attendance)  
-post /attendance_create {  
+post /attendance/create {  
 "classid": classid,  
 "date": date,  
 "starttime": starttime,  
@@ -161,7 +196,7 @@ post /attendance_create {
 ### Summary Section  
   
 #4.4.1  
-get /attendanec_btn?classid=<> {  
+get /attendande/<classID> {  
 "classid": classid,  
 "classname": classname,  
 "date": date,  
@@ -178,7 +213,8 @@ get /attendanec_btn?classid=<> {
 ### Q/A Section  
   
 #4.5.1 q/a btn (e.g. python)  
-get /qa_btn?classid=<> {  
+get /QA/<classID> {  
+"qaid": qaid,  
 "classid": classid,  
 "classname": classname,  
 "date": date,  
@@ -186,20 +222,25 @@ get /qa_btn?classid=<> {
 "reply": reply  
 }  
   
-#4.5.2 & 4.5.3 question btn & reply btn   
-post /classid=<> {  
-"qaID":qaID,  
+#4.5.2 question btn  
+post /QA/question/<classID> {  
+"date": date,  
 "classid": classid,  
-"question":question,  
+"question":question  
+}  
+
+4.5.3 reply btn  
+post /QA/reply/<classID> {  
+"qaID": qaID,  
+"classID": classid,  
 "reply": reply  
 }  
-  
   
 ### My Profile Section  
   
 #4.6.1 myprofile btn  
-get /account=<> {  
-"name": name,  
+get /myprofile {  
+"username": username,  
 "oldpassword": password,  
 "phone": phone,  
 "status_tutor": status_tutor,   
@@ -208,8 +249,8 @@ get /account=<> {
 }  
   
 #4.6.2 confirm btn (my profile)  
-post /account=<> {  
-"name": name,  
+put /myprofile/modify {  
+"username": username,  
 "oldpassword": oldpassword,  
 "newpassword": newpassword,  
 "phone": phone,  
