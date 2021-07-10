@@ -72,11 +72,12 @@ class Class_Time(db.Model):
     endtime = db.Column(db.Time)
     lesson = db.Column(db.String(100))
     hw = db.Column(db.String(100))
+    done = db.Column(db.Boolean)  # 2021-07-10 add "done" column.
     insert_time = db.Column(db.DateTime, default=datetime.now)
     update_time = db.Column(
         db.DateTime, onupdate=datetime.now, default=datetime.now)
 
-    def __init__(self, classID, date, weeday, starttime, endtime, lesson, hw):
+    def __init__(self, classID, date, weeday, starttime, endtime, lesson, hw, done):
         self.classID = classID
         self.date = date
         self.weekday = weeday
@@ -84,6 +85,7 @@ class Class_Time(db.Model):
         self.endtime = endtime
         self.lesson = lesson
         self.hw = hw
+        self.done = done
 
 
 class Attendance(db.Model):
@@ -131,3 +133,30 @@ class QA(db.Model):
         self.date = date
         self.question = question
         self.reply = reply
+
+
+# 2021-07-10
+# Add "Todolist_Done" table model.
+class Todolist_Done(db.Model):
+    __tablename__ = 'Todolist_Done'
+    origin_classtimeID = db.Column(db.Integer, primary_key=True)
+    classID = db.Column(db.String(100))
+    date = db.Column(db.Date)
+    weekday = db.Column(db.String(15))
+    starttime = db.Column(db.Time)
+    endtime = db.Column(db.Time)
+    lesson = db.Column(db.String(100))
+    hw = db.Column(db.String(100))
+    insert_time = db.Column(db.DateTime, default=datetime.now)
+    update_time = db.Column(
+        db.DateTime, onupdate=datetime.now, default=datetime.now)
+
+    def __init__(self, origin_classtimeID, classID, date, weeday, starttime, endtime, lesson, hw):
+        self.origin_classtimeID = origin_classtimeID
+        self.classID = classID
+        self.date = date
+        self.weekday = weeday
+        self.starttime = starttime
+        self.endtime = endtime
+        self.lesson = lesson
+        self.hw = hw
