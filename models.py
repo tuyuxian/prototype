@@ -1,6 +1,8 @@
 from extension import db
 from datetime import datetime
 
+# define database model
+
 
 class Account(db.Model):
     __tablename__ = 'Account'

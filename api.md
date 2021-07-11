@@ -68,7 +68,8 @@ post /class/create {
 "starttime": starttime,   
 "endtime": endtime,  
 "payment_hrs": payment_hrs,  
-"payment_time": payment_time  
+"payment_time": payment_time,  
+"url": url   
 }  
   
 #4.1.3 add member_confirm btn  
@@ -81,7 +82,44 @@ post /class/addmember {
 delete /class/delete {  
 "classid": classid  
 }  
-
+  
+#4.1.5 shareurl btn
+get /class/url {  
+"classid": classid  
+}  
+  
+#4.1.6 get url  
+get /<url> {  
+"classid": classid,  
+"tutor": tutor,  
+"classname": classname  
+}  
+  
+#4.1.7 invite user
+get /invite/<tutor>&<classid>&<classname> {  
+"classid": classid,  
+"email": email,  
+"classname":classname,  
+"tutor": tutor  
+}  
+// if user not login -> don't deliever email.  
+  
+#4.1.8 invite confirm
+get /invite/confirm/<email>&<tutor>&<classid>&<classname> {  
+}  
+  
+#4.1.9 invite login
+get /invite/login/<email>&<tutor>&<classid>&<classname> {  
+}  
+  
+#4.1.10 invite login
+post /invite/login/<email>&<tutor>&<classid>&<classname> {  
+"classid": classid,  
+"email": email,  
+"classname":classname,  
+"tutor": tutor  
+}  
+  
   
 ### To Do List Section
 
