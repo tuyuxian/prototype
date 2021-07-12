@@ -183,7 +183,7 @@ def create_class():
             url = secrets.token_urlsafe(10)
             # Add hours calculate limit. (2021-07-11)
             for item in all_date:
-                if hrs_calculate(starttime, endtime) <= 0:
+                if hrs_calculate(item[2], item[3]) <= 0: # Fix hour calculate issue.
                     return jsonify(status=False, message='Time input error.')
             # Insert new class into three tables.
             class_init = Class(
