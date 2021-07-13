@@ -1,8 +1,6 @@
 from extension import db
 from datetime import datetime
 
-# define database model
-
 
 class Account(db.Model):
     __tablename__ = 'Account'
@@ -13,11 +11,15 @@ class Account(db.Model):
     status_tutor = db.Column(db.Boolean)
     status_student = db.Column(db.Boolean)
     status_parents = db.Column(db.Boolean)
+    # 2021-07-13 add "personal_question" column.
+    personal_question = db.Column(db.String(100))
+    # 2021-07-13 add "profile_picture_path" column.
+    profile_picture_path = db.Column(db.String(255))
     insert_time = db.Column(db.DateTime, default=datetime.now)
     update_time = db.Column(
         db.DateTime, onupdate=datetime.now, default=datetime.now)
 
-    def __init__(self, email, password, username, phone, status_tutor, status_student, status_parents):
+    def __init__(self, email, password, username, phone, status_tutor, status_student, status_parents, personal_question):
         self.email = email
         self.password = password
         self.username = username
@@ -25,6 +27,7 @@ class Account(db.Model):
         self.status_tutor = status_tutor
         self.status_student = status_student
         self.status_parents = status_parents
+        self.personal_question = personal_question
 
 
 class Class(db.Model):

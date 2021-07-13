@@ -17,7 +17,8 @@ post /register {
 "username" : username,  
 "status_tutor": status_tutor,
 "status_student": status_student,
-"status_parents": status_parents
+"status_parents": status_parents,  
+"personal_question": personal_question  
 }   
 {"status" : 200 or "status" : false}
 

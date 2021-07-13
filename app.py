@@ -9,6 +9,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_bcrypt import Bcrypt
 from datetime import timedelta
 from distutils.util import strtobool
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from flask_mail import Mail, Message
+from threading import Thread
 
 # env
 import os
@@ -23,6 +26,23 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI')
 db.init_app(app)
 bcrypt = Bcrypt(app)
+mail = Mail(app)
+# login_manager = LoginManager()
+# login_manager.init_app(app)
+# login_manager.session_protection = "basic"
+# login_manager.login_view = 'login'
+# login_manager.login_message = 'Please Login First.'
+# class User(UserMixin):
+#     pass
+
+app.config.update(
+    MAIL_SERVER='smtp.gmail.com',
+    MAIL_PROT=465,
+    MAIL_USE_TLS=True,
+    MAIL_DEFAULT_SENDER=('admin', 'xxxxxx@gmail.com'),
+    MAIL_USERNAME='xxxxxxx@gmail.com',
+    MAIL_PASSWORD='xxxxxxxxx'
+)
 
 
 @app.route('/')
@@ -39,6 +59,8 @@ def register():
     status_tutor = request.args.get('status_tutor')
     status_student = request.args.get('status_student')
     status_parents = request.args.get('status_parents')
+    # Add personal_question (2021-07-13)
+    personal_question = request.args.get('personal_question')
     try:
         # Cheking that method is post and form is valid or not.
         check = Account.query.filter_by(email=email).count()
@@ -52,10 +74,10 @@ def register():
                 username=username,
                 password=hashed_password,
                 phone=' ',
-                # default 1 , wait for front design
                 status_tutor=int(status_tutor),
                 status_student=int(status_student),
-                status_parents=int(status_parents)
+                status_parents=int(status_parents),
+                personal_question=personal_question
             )
             # saving user object into data base with hashed password
             db.session.add(new_user)
@@ -183,7 +205,8 @@ def create_class():
             url = secrets.token_urlsafe(10)
             # Add hours calculate limit. (2021-07-11)
             for item in all_date:
-                if hrs_calculate(starttime, endtime) <= 0:
+                # Fix hour calculate issue (2021-07-12)
+                if hrs_calculate(item[2], item[3]) <= 0:
                     return jsonify(status=False, message='Time input error.')
             # Insert new class into three tables.
             class_init = Class(
@@ -225,6 +248,7 @@ def create_class():
 @app.route('/class/addmember', methods=['POST'])
 def add_member():
     # api 4.1.3
+    # Fix adding invalid user issue. (2021-07-13)
     try:
         classID = request.args.get('classid')
         attenderemail = request.args.get('attenderemail').split(',')
@@ -241,12 +265,23 @@ def add_member():
             else:
                 exist_attender.append(item)
 
+        # Check whether user is in the db. (invalid user issue)
+        valid_attender = []
+        invalid_attender = []
+        for item in new_attender:
+            query_user_check = Account.query.filter_by(email=item).first()
+            if query_user_check != None and (query_user_check.status_student or query_user_check.status_parents):
+                valid_attender.append(item)
+            elif not (query_user_check.status_student or query_user_check.status_parents):
+                invalid_attender.append([item, 'Status_locked.'])
+            else:
+                invalid_attender.append([item, 'User is not exist.'])
         # Insert new attender into Class_Attender table.
         class_attender = [Class_Attender(classID, item)
-                          for item in new_attender]
+                          for item in valid_attender]
         db.session.add_all(class_attender)
         db.session.commit()
-        return jsonify(status=True, duplicate_attender=exist_attender)
+        return jsonify(status=True, duplicate_attender=exist_attender, invalid_attender=invalid_attender)
     except:
         return jsonify(status=False, message='Add member failed.')
 
@@ -856,6 +891,99 @@ def invite_login(tutor, classid, classname):
                 return jsonify({'status': False, 'note': 'User is not found.'})
         except:
             return jsonify({'status': False, 'note': 'system error'})
+
+
+@app.route('/forgetpassword', methods=['GET'])
+def forget_password():
+    # api 2.2
+    try:
+        if session['logged_in']:
+            return jsonify(status=False, message='User already login.')
+    except KeyError:
+        email = request.args.get('email')
+        query_user = Account.query.filter_by(email=email).first()
+        # need token here
+        # def get_reset_token(self, expires_sec=300):
+        #     s = Serializer(current_app.config["SECRET_KEY"], expires_sec)
+        #     return s.dumps({"user_id": self.id}).decode("utf-8")
+        # def verify_reset_token(token):
+        #     s = Serializer(current_app.config["SECRET_KEY"])
+        #     try:
+        #         user_id = s.loads(token)["user_id"]
+        #     except (KeyError, TypeError):
+        #         return None
+        #     return User.query.get(user_id)
+        msg_title = 'Reset Your Password'
+        msg_recipients = [query_user.email]
+        msg_body = 'Use this url to reset your password.'
+
+        send_mail(recipients=msg_recipients,
+                  subject=msg_title,
+                  context=msg_body
+                  #    template='author/mail/resetmail',
+                  #    mailtype='html',
+                  #    user=query_user.username,
+                  #    token=token
+                  )
+        flash('Please Check Your Email. Then Click link to Reset Password')
+        return 'send email'
+# Message(subject='', recipients=None, body=None,
+#                          html=None, sender=None, cc=None, bcc=None,
+#                          attachments=None, reply_to=None, date=None,
+#                          charset=None, extra_headers=None,
+#                          mail_options=None, rcpt_options=None)
+
+
+def send_async_email(app, msg):
+    """
+    利用多執行緒來處理郵件寄送
+    :param app: 實作Flask的app
+    :param msg: 實作Message的msg
+    :return:
+    """
+    with app.app_context():
+        mail.send(msg)
+
+
+def send_mail(recipients, subject, context, **kwargs):
+    """
+    recipients:記得要list格式
+    subject:是郵件主旨
+    context:郵件內容
+    **kwargs:參數
+    """
+    msg = Message(subject, recipients=recipients)
+    msg.body = context
+    #msg.html = render_template(template + '.html', **kwargs)
+    thr = Thread(target=send_async_email, args=[app, msg])
+    thr.start()
+    return thr
+
+
+@app.route('/resetpassword', methods=['GET', 'POST'])
+def reset_password():
+    # api 2.3
+    if request.method == 'GET':
+        try:
+            if session['logged_in']:
+                return jsonify(status=False, message='User already login.')
+        except KeyError:
+            return 'reset password'
+
+    elif request.method == 'POST':
+        try:
+            if session['logged_in']:
+                return jsonify(status=False, message='User already login.')
+        except KeyError:
+            email = request.args.get('email')
+            query_user_reset_pwd = Account.query.filter_by(email=email).first()
+            newpassword = request.args.get('newpassword')
+            # hash
+            hash_newpassword = bcrypt.generate_password_hash(newpassword)
+
+            if query_user_reset_pwd != None:
+                query_user_reset_pwd.password = hash_newpassword
+            return jsonify(status=True)
 
 
 if __name__ == '__main__':
