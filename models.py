@@ -1,7 +1,6 @@
 from extension import db
 from datetime import datetime
 
-
 class Account(db.Model):
     __tablename__ = 'Account'
     email = db.Column(db.String(100), primary_key=True, unique=True)
@@ -28,7 +27,6 @@ class Account(db.Model):
         self.status_student = status_student
         self.status_parents = status_parents
         self.personal_question = personal_question
-
 
 class Class(db.Model):
     __tablename__ = 'Class'
@@ -165,3 +163,36 @@ class Todolist_Done(db.Model):
         self.endtime = endtime
         self.lesson = lesson
         self.hw = hw
+
+class Admin(db.Model):
+    __tablename__='Admin'
+    id = db.Column(db.Integer, primary_key=True)
+    login = db.Column(db.String(80))
+    password = db.Column(db.String(100))
+    def __init__(self,login,password):
+        self.login = login
+        self.password = password
+
+    # Flask-Login integration
+    # NOTE: is_authenticated, is_active, and is_anonymous
+    # are methods in Flask-Login < 0.3.0
+    @property
+    def is_authenticated(self):
+        return True
+
+    @property
+    def is_active(self):
+        return True
+
+    @property
+    def is_anonymous(self):
+        return False
+
+    def get_id(self):
+        return self.id
+
+    # Required for administrative interface
+    def __unicode__(self):
+        return self.username
+
+

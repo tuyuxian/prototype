@@ -82,3 +82,13 @@ def time_type(time):
         :rtype date: str
     """
     return datetime.time.strftime(time,  '%H:%M:%S')
+
+def build_sample_db():
+    from models import Admin
+    from werkzeug.security import generate_password_hash
+    # passwords are hashed, to use plaintext passwords instead:
+    # test_user = User(login="test", password="test")
+    test_user = Admin(login="test123", password=generate_password_hash("test123"))
+    db.session.add(test_user)
+    db.session.commit()
+    return

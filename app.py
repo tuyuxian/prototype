@@ -3,7 +3,7 @@ import secrets
 
 from sqlalchemy.orm import create_session
 from models import *
-from extension import db, date_calculate, hrs_calculate, get_weekday, time_type, date_type
+from extension import db, date_calculate, hrs_calculate, get_weekday, time_type, date_type, build_sample_db
 from flask import Flask, json, render_template, request, jsonify, session, flash, redirect, logging, url_for
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_bcrypt import Bcrypt
@@ -13,11 +13,17 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, login_
 from flask_mail import Mail, Message
 from threading import Thread
 
+#2021/7/13 更新的部分admin
+from wtforms import form, fields, validators
+import flask_admin as admin
+import flask_login as login
+from flask_admin.contrib import sqla
+from flask_admin import helpers, expose
+
 # env
 import os
 from dotenv import load_dotenv
 load_dotenv()
-
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
@@ -44,6 +50,105 @@ app.config.update(
     MAIL_PASSWORD='xxxxxxxxx'
 )
 
+#2021/7/13 更新的部分admin, DataBase需要再多新增一個Admin的table,作為管理員帳號管理用
+
+# Define login and registration forms (for flask-login)
+class LoginForm(form.Form):
+    login = fields.StringField(validators=[validators.required()])
+    password = fields.PasswordField(validators=[validators.required()])
+
+    def validate_login(self, field):
+        user = self.get_user()
+        if user is None:
+            raise validators.ValidationError('Invalid user')
+
+        # we're comparing the plaintext pw with the the hash from the db
+        if user.password != self.password.data:
+        # to compare plain text passwords use
+            raise validators.ValidationError('Invalid password')
+
+    def get_user(self):
+        return db.session.query(Admin).filter_by(login=self.login.data).first()
+
+class RegistrationForm(form.Form):
+    login = fields.StringField(validators=[validators.required()])
+    password = fields.PasswordField(validators=[validators.required()])
+
+    def validate_login(self, field):
+        if db.session.query(Admin).filter_by(login=self.login.data).count() > 0:
+            raise validators.ValidationError('Duplicate username')
+
+# Initialize flask-login
+def init_login():
+    login_manager = login.LoginManager()
+    login_manager.init_app(app)
+    # Create user loader function
+    @login_manager.user_loader
+    def load_user(user_id):
+        return db.session.query(Admin).get(user_id)
+
+# Create customized model view class
+class MyModelView(sqla.ModelView):
+    def is_accessible(self):
+        return current_user.is_authenticated
+
+# Create customized index view class that handles login & registration
+class MyAdminIndexView(admin.AdminIndexView):
+    @expose('/')
+    def index(self):
+        if not current_user.is_authenticated:
+            return redirect(url_for('.login_view'))
+        return super(MyAdminIndexView, self).index()
+
+    @expose('/login/', methods=('GET', 'POST'))
+    def login_view(self):
+        # handle user login
+        form = LoginForm(request.form)
+        if helpers.validate_form_on_submit(form):
+            user = form.get_user()
+            login_user(user)
+
+        if current_user.is_authenticated:
+            return redirect(url_for('.index'))
+        
+        self._template_args['form'] = form
+        
+        return super(MyAdminIndexView, self).index()
+
+    @expose('/register/', methods=('GET', 'POST'))
+    def register_view(self):
+        form = RegistrationForm(request.form)
+        if helpers.validate_form_on_submit(form):
+            user = Admin()
+
+            form.populate_obj(user)
+            # we hash the users password to avoid saving it as plaintext in the db,
+            # remove to use plain text:
+            user.password = generate_password_hash(form.password.data)
+            db.session.add(user)
+            db.session.commit()
+            login_user(user)
+            return redirect(url_for('.index'))
+        
+        return super(MyAdminIndexView, self).index()
+
+    @expose('/logout/')
+    def logout_view(self):
+        logout_user()
+        return redirect(url_for('.index'))
+
+# Initialize flask-login
+init_login()
+# Create admin
+admin = admin.Admin(app, 'Tutor', index_view=MyAdminIndexView(), base_template='my_master.html')
+
+admin.add_view(MyModelView(Account, db.session))
+admin.add_view(MyModelView(Class, db.session))
+admin.add_view(MyModelView(Class_Attender, db.session))
+admin.add_view(MyModelView(Class_Time, db.session))
+admin.add_view(MyModelView(Attendance, db.session))
+admin.add_view(MyModelView(QA, db.session))
+admin.add_view(MyModelView(Todolist_Done, db.session))
 
 @app.route('/')
 def index():
@@ -205,12 +310,8 @@ def create_class():
             url = secrets.token_urlsafe(10)
             # Add hours calculate limit. (2021-07-11)
             for item in all_date:
-<<<<<<< HEAD
                 # Fix hour calculate issue (2021-07-12)
                 if hrs_calculate(item[2], item[3]) <= 0:
-=======
-                if hrs_calculate(item[2], item[3]) <= 0: # Fix hour calculate issue.
->>>>>>> 17ca7e26089a84d6d7977d54fb05b45b637ad824
                     return jsonify(status=False, message='Time input error.')
             # Insert new class into three tables.
             class_init = Class(
@@ -990,5 +1091,7 @@ def reset_password():
             return jsonify(status=True)
 
 
+
 if __name__ == '__main__':
+    #build_sample_db()
     app.run(debug=True)
