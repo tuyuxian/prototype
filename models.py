@@ -1,5 +1,7 @@
 from extension import db
 from datetime import datetime
+from datetime import date
+today = date.today()
 
 class Account(db.Model):
     __tablename__ = 'Account'
@@ -131,7 +133,7 @@ class QA(db.Model):
     update_time = db.Column(
         db.DateTime, onupdate=datetime.now, default=datetime.now)
 
-    def __init__(self, classID, date, question, reply):
+    def __init__(self, classID, question, reply, date=today.strftime('%Y-%m-%d')):
         self.classID = classID
         self.date = date
         self.question = question
