@@ -82,3 +82,4 @@ def time_type(time):
         :rtype date: str
     """
     return datetime.time.strftime(time,  '%H:%M:%S')
+
