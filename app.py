@@ -757,9 +757,10 @@ def qa_btn(classID):
             filters_classid = {'classID': classID}
             query_qa = QA.query.filter_by(**filters_classid).all()
             query_class = Class.query.filter_by(**filters_classid).first()
-
-            print('query_qa={}'.format(query_qa))
-            if query_qa != None:
+            # Search all QA info. for this classID  
+            if query_class == None:  # check whether this classID existed, if not return status=False
+                return jsonify(status=False, message='classID is not found')
+            else:
                 qa_data = [[{'classname': query_class.className}], [{'qaID': item.qaID, 'classid': item.classID, 'date': item.date,
                                                                      'question': item.question, 'reply': item.reply} for item in query_qa]]
                 return jsonify(qa_data)
@@ -771,23 +772,25 @@ def qa_btn(classID):
 def question_btn(classID):
     # api 4.5.2 question_btn
     if request.method == 'POST':
-        # get the data from front-end
-        # qaID is autoincrement
-        date = request.args.get('date')
-        question = request.args.get('question')
+        try:
+            # get the data from front-end, qaID is autoincrement
+            question = request.args.get('question')
 
-        filters_classid = {'classID': classID}
-        query_qa = QA.query.filter_by(**filters_classid).all()
-        print('query_qa={}'.format(query_qa))
-        if query_qa == None:
-            return jsonify(status=False, message='classID is Wrong.')
-        else:
-            # Insert new question into QA table.
-            newquestion = QA(classID, date, question, '')  # reply default ''
-            print('newquestion={}'.format(newquestion))
-            db.session.add(newquestion)
-            db.session.commit()
-            return jsonify(status=True)
+            filters_classid = {'classID': classID}
+            query_qa = Class.query.filter_by(**filters_classid).all()
+            if len(query_qa) == 0:
+                return jsonify(status=False, message='classID is Wrong.')
+            else:
+                # Insert new question into QA table.
+                newquestion = QA(
+                    classID, 
+                    question, '')  # reply default ''
+                db.session.add(newquestion)
+                db.session.commit()
+                return jsonify(status=True)
+        except:
+            return jsonify(status=False, message='Error, can\'t add the question.')
+
 
 
 @app.route('/QA/reply/<classID>', methods=['POST'])
@@ -797,12 +800,10 @@ def reply_btn(classID):
         try:
             # get the data from front-end
             qaID = request.args.get('qaID')
-            # date = request.args.get('date')
             reply = request.args.get('reply')
-
             filters_classid = {'classID': classID, 'qaID': int(qaID)}
             query_qa = QA.query.filter_by(**filters_classid).first()
-            print('query_qa={}'.format(query_qa))
+
             if query_qa != None:
                 query_qa.reply = reply
                 db.session.commit()
@@ -821,11 +822,9 @@ def myprofile_btn():
         email = session.get('email')
         filters_account = {'email': email}
         query_account = Account.query.filter_by(**filters_account).first()
-        print('query_account={}'.format(query_account))
-        print('query_account.username={}'.format(query_account.username))
         account_lst = [{"username": query_account.username, "oldpassword": query_account.password, "phone": query_account.phone,
                         "status_tutor": query_account.status_tutor, "status_student": query_account.status_student, "status_parents": query_account.status_parents}]
-        return jsonify(account_lst)
+        return jsonify(status=True, account_lst=account_lst)
     except:
         return jsonify(status=False, message='Get accoint info failed.')
 
@@ -842,27 +841,32 @@ def myprofile_confirm():
 
         oldpassword = request.args.get('oldpassword')
         newpassword = request.args.get('newpassword')
-        # hash
-        hash_oldpassword = bcrypt.generate_password_hash(oldpassword)
-        hash_newpassword = bcrypt.generate_password_hash(newpassword)
 
         if query_account_update != None:
             # Update account info into Account table.
             DB_pwd = query_account_update.password  # have hashed
+
             if not bcrypt.check_password_hash(DB_pwd, oldpassword):
                 return jsonify(status=False, message='old password is Wrong')
             else:
-                if bcrypt.check_password_hash(hash_newpassword, oldpassword):
-                    return jsonify(status=False, message='new password is same as the old one')
+                if len(newpassword) == 0:  # don't update password
+                    pass
                 else:
-                    query_account_update.password = hash_newpassword
+                    # hash
+                    hash_newpassword = bcrypt.generate_password_hash(newpassword)
+                    if bcrypt.check_password_hash(hash_newpassword, oldpassword):
+                        return jsonify(status=False, message='new password is same as the old one')
+                    else:
+                        query_account_update.password = hash_newpassword
 
             # Update other info
-            query_account_update.username = request.args.get(
-                'username', query_account_update.username)
-            query_account_update.phone = request.args.get(
-                'phone', query_account_update.phone)
+            if len(request.args.get('new_username')) != 0:
+                query_account_update.username = request.args.get('new_username')
+            if len(request.args.get('phone')) != 0:
+                query_account_update.phone = request.args.get('phone')
+            
             # from front_end are all String Type, so change to Boolean Type here
+            # front-end will limit to type input:0, 1
             new_status_tutor = bool(
                 strtobool(request.args.get('status_tutor')))
             new_status_student = bool(
@@ -885,8 +889,7 @@ def myprofile_confirm():
             return jsonify(status=True)
         else:
             return jsonify(status=False, message='query_account is None.')
-    except Exception as ee:
-        print(str(ee))
+    except:
         return jsonify(status=False, message='Get account info failed.')
 
 
