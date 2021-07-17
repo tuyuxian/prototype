@@ -3,7 +3,7 @@ import secrets
 import time
 from sqlalchemy.orm import create_session
 from models import *
-from extension import db, date_calculate, hrs_calculate, get_weekday, time_type, date_type
+from extension import db, date_calculate, hrs_calculate, get_weekday, time_type, date_type, build_sample_db
 from flask import Flask, json, render_template, request, jsonify, session, flash, redirect, logging, url_for
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_bcrypt import Bcrypt
@@ -13,11 +13,17 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, login_
 from flask_mail import Mail, Message
 from threading import Thread
 
+#2021/7/13 更新的部分admin
+from wtforms import form, fields, validators
+import flask_admin as admin
+import flask_login as login
+from flask_admin.contrib import sqla
+from flask_admin import helpers, expose
+
 # env
 import os
 from dotenv import load_dotenv
 load_dotenv()
-
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
@@ -44,6 +50,105 @@ app.config.update(
     MAIL_PASSWORD='xxxxxxxxx'
 )
 
+#2021/7/13 更新的部分admin, DataBase需要再多新增一個Admin的table,作為管理員帳號管理用
+
+# Define login and registration forms (for flask-login)
+class LoginForm(form.Form):
+    login = fields.StringField(validators=[validators.required()])
+    password = fields.PasswordField(validators=[validators.required()])
+
+    def validate_login(self, field):
+        user = self.get_user()
+        if user is None:
+            raise validators.ValidationError('Invalid user')
+
+        # we're comparing the plaintext pw with the the hash from the db
+        if user.password != self.password.data:
+        # to compare plain text passwords use
+            raise validators.ValidationError('Invalid password')
+
+    def get_user(self):
+        return db.session.query(Admin).filter_by(login=self.login.data).first()
+
+class RegistrationForm(form.Form):
+    login = fields.StringField(validators=[validators.required()])
+    password = fields.PasswordField(validators=[validators.required()])
+
+    def validate_login(self, field):
+        if db.session.query(Admin).filter_by(login=self.login.data).count() > 0:
+            raise validators.ValidationError('Duplicate username')
+
+# Initialize flask-login
+def init_login():
+    login_manager = login.LoginManager()
+    login_manager.init_app(app)
+    # Create user loader function
+    @login_manager.user_loader
+    def load_user(user_id):
+        return db.session.query(Admin).get(user_id)
+
+# Create customized model view class
+class MyModelView(sqla.ModelView):
+    def is_accessible(self):
+        return current_user.is_authenticated
+
+# Create customized index view class that handles login & registration
+class MyAdminIndexView(admin.AdminIndexView):
+    @expose('/')
+    def index(self):
+        if not current_user.is_authenticated:
+            return redirect(url_for('.login_view'))
+        return super(MyAdminIndexView, self).index()
+
+    @expose('/login/', methods=('GET', 'POST'))
+    def login_view(self):
+        # handle user login
+        form = LoginForm(request.form)
+        if helpers.validate_form_on_submit(form):
+            user = form.get_user()
+            login_user(user)
+
+        if current_user.is_authenticated:
+            return redirect(url_for('.index'))
+        
+        self._template_args['form'] = form
+        
+        return super(MyAdminIndexView, self).index()
+
+    @expose('/register/', methods=('GET', 'POST'))
+    def register_view(self):
+        form = RegistrationForm(request.form)
+        if helpers.validate_form_on_submit(form):
+            user = Admin()
+
+            form.populate_obj(user)
+            # we hash the users password to avoid saving it as plaintext in the db,
+            # remove to use plain text:
+            user.password = generate_password_hash(form.password.data)
+            db.session.add(user)
+            db.session.commit()
+            login_user(user)
+            return redirect(url_for('.index'))
+        
+        return super(MyAdminIndexView, self).index()
+
+    @expose('/logout/')
+    def logout_view(self):
+        logout_user()
+        return redirect(url_for('.index'))
+
+# Initialize flask-login
+init_login()
+# Create admin
+admin = admin.Admin(app, 'Tutor', index_view=MyAdminIndexView(), base_template='my_master.html')
+
+admin.add_view(MyModelView(Account, db.session))
+admin.add_view(MyModelView(Class, db.session))
+admin.add_view(MyModelView(Class_Attender, db.session))
+admin.add_view(MyModelView(Class_Time, db.session))
+admin.add_view(MyModelView(Attendance, db.session))
+admin.add_view(MyModelView(QA, db.session))
+admin.add_view(MyModelView(Todolist_Done, db.session))
 
 @app.route('/')
 def index():
@@ -167,6 +272,7 @@ def status_select():
 def get_class():
     # api 4.1.1
     email = session.get('email')
+<<<<<<< HEAD
     # Fix status missing issue (2021-07-14)
     user_status = session.get('user_status')
     if int(user_status) == 1:
@@ -208,6 +314,81 @@ def get_class():
             return render_template('class.html', username=query_account.username, all_class=class_data, user_status=user_status)
         else:
             return jsonify(status=False, message='No class in this account.')
+=======
+    filters_class = {'tutorEmail': email}
+    filters_account = {'email': email}
+    query_class = Class.query.filter_by(**filters_class).all()
+    query_account = Account.query.filter_by(**filters_account).first()
+    if query_class != None:
+        class_data = [{
+            'classid': item.classID,
+            'classname': item.className,
+            'payment_hrs': item.payment_hrs,
+            'payment_time': item.payment_time
+        } for item in query_class]
+        return jsonify(username=query_account.username, all_class=class_data)
+    else:
+        return jsonify(status=False, message='No class in this account.')
+
+
+@app.route('/class/create', methods=['POST'])
+def create_class():
+    # api 4.1.2
+    tutorEmail = session.get('email')
+    className = request.args.get('classname')
+    filters_classname = {'className': className, 'tutorEmail': tutorEmail}
+    query_classname = Class.query.filter_by(**filters_classname).first()
+    if query_classname != None:
+        # Same class name already in this account -> ask user to use another name.
+        return jsonify(status=False, message='This class is already in your account. Use tag like xxx_1 to name the class.')
+    else:
+        try:
+            classID = str(uuid.uuid4())
+            weekday = request.args.get('weekday').split(',')
+            starttime = request.args.get('starttime').split(',')
+            endtime = request.args.get('endtime').split(',')
+            payment_hrs = request.args.get('payment_hrs')
+            payment_time = request.args.get('payment_time')
+            startdate = request.args.get('startdate')
+            enddate = request.args.get('enddate')
+            all_date = date_calculate(
+                startdate, enddate, weekday, starttime, endtime)
+            all_date = [item for item in all_date]
+            # Add url. (2021-07-10)
+            url = secrets.token_urlsafe(10)
+            # Add hours calculate limit. (2021-07-11)
+            for item in all_date:
+                # Fix hour calculate issue (2021-07-12)
+                if hrs_calculate(item[2], item[3]) <= 0:
+                    return jsonify(status=False, message='Time input error.')
+            # Insert new class into three tables.
+            class_init = Class(
+                classID,
+                className,
+                tutorEmail,
+                int(payment_hrs),
+                int(payment_time),
+                url)
+            class_time = [Class_Time(
+                classID,
+                item[0],
+                item[1],
+                item[2],
+                item[3],
+                ' ',
+                ' ',
+                0) for item in all_date]
+            attendance = [Attendance(
+                classID,
+                item[0],
+                item[2],
+                item[3],
+                0,
+                0,
+                0,
+                ' ',
+                hrs_calculate(item[2], item[3])) for item in all_date]
+>>>>>>> d1a5e67de96ddae25fadadabdd0ef2f96a8e0468
 
 
 @app.route('/class/create', methods=['GET', 'POST'])
@@ -699,9 +880,10 @@ def qa_btn(classID):
             filters_classid = {'classID': classID}
             query_qa = QA.query.filter_by(**filters_classid).all()
             query_class = Class.query.filter_by(**filters_classid).first()
-
-            print('query_qa={}'.format(query_qa))
-            if query_qa != None:
+            # Search all QA info. for this classID  
+            if query_class == None:  # check whether this classID existed, if not return status=False
+                return jsonify(status=False, message='classID is not found')
+            else:
                 qa_data = [[{'classname': query_class.className}], [{'qaID': item.qaID, 'classid': item.classID, 'date': item.date,
                                                                      'question': item.question, 'reply': item.reply} for item in query_qa]]
                 return jsonify(qa_data)
@@ -713,23 +895,25 @@ def qa_btn(classID):
 def question_btn(classID):
     # api 4.5.2 question_btn
     if request.method == 'POST':
-        # get the data from front-end
-        # qaID is autoincrement
-        date = request.args.get('date')
-        question = request.args.get('question')
+        try:
+            # get the data from front-end, qaID is autoincrement
+            question = request.args.get('question')
 
-        filters_classid = {'classID': classID}
-        query_qa = QA.query.filter_by(**filters_classid).all()
-        print('query_qa={}'.format(query_qa))
-        if query_qa == None:
-            return jsonify(status=False, message='classID is Wrong.')
-        else:
-            # Insert new question into QA table.
-            newquestion = QA(classID, date, question, '')  # reply default ''
-            print('newquestion={}'.format(newquestion))
-            db.session.add(newquestion)
-            db.session.commit()
-            return jsonify(status=True)
+            filters_classid = {'classID': classID}
+            query_qa = Class.query.filter_by(**filters_classid).all()
+            if len(query_qa) == 0:
+                return jsonify(status=False, message='classID is Wrong.')
+            else:
+                # Insert new question into QA table.
+                newquestion = QA(
+                    classID, 
+                    question, '')  # reply default ''
+                db.session.add(newquestion)
+                db.session.commit()
+                return jsonify(status=True)
+        except:
+            return jsonify(status=False, message='Error, can\'t add the question.')
+
 
 
 @app.route('/QA/reply/<classID>', methods=['POST'])
@@ -739,12 +923,10 @@ def reply_btn(classID):
         try:
             # get the data from front-end
             qaID = request.args.get('qaID')
-            # date = request.args.get('date')
             reply = request.args.get('reply')
-
             filters_classid = {'classID': classID, 'qaID': int(qaID)}
             query_qa = QA.query.filter_by(**filters_classid).first()
-            print('query_qa={}'.format(query_qa))
+
             if query_qa != None:
                 query_qa.reply = reply
                 db.session.commit()
@@ -763,11 +945,9 @@ def myprofile_btn():
         email = session.get('email')
         filters_account = {'email': email}
         query_account = Account.query.filter_by(**filters_account).first()
-        print('query_account={}'.format(query_account))
-        print('query_account.username={}'.format(query_account.username))
         account_lst = [{"username": query_account.username, "oldpassword": query_account.password, "phone": query_account.phone,
                         "status_tutor": query_account.status_tutor, "status_student": query_account.status_student, "status_parents": query_account.status_parents}]
-        return jsonify(account_lst)
+        return jsonify(status=True, account_lst=account_lst)
     except:
         return jsonify(status=False, message='Get accoint info failed.')
 
@@ -784,27 +964,32 @@ def myprofile_confirm():
 
         oldpassword = request.args.get('oldpassword')
         newpassword = request.args.get('newpassword')
-        # hash
-        hash_oldpassword = bcrypt.generate_password_hash(oldpassword)
-        hash_newpassword = bcrypt.generate_password_hash(newpassword)
 
         if query_account_update != None:
             # Update account info into Account table.
             DB_pwd = query_account_update.password  # have hashed
+
             if not bcrypt.check_password_hash(DB_pwd, oldpassword):
                 return jsonify(status=False, message='old password is Wrong')
             else:
-                if bcrypt.check_password_hash(hash_newpassword, oldpassword):
-                    return jsonify(status=False, message='new password is same as the old one')
+                if len(newpassword) == 0:  # don't update password
+                    pass
                 else:
-                    query_account_update.password = hash_newpassword
+                    # hash
+                    hash_newpassword = bcrypt.generate_password_hash(newpassword)
+                    if bcrypt.check_password_hash(hash_newpassword, oldpassword):
+                        return jsonify(status=False, message='new password is same as the old one')
+                    else:
+                        query_account_update.password = hash_newpassword
 
             # Update other info
-            query_account_update.username = request.args.get(
-                'username', query_account_update.username)
-            query_account_update.phone = request.args.get(
-                'phone', query_account_update.phone)
+            if len(request.args.get('new_username')) != 0:
+                query_account_update.username = request.args.get('new_username')
+            if len(request.args.get('phone')) != 0:
+                query_account_update.phone = request.args.get('phone')
+            
             # from front_end are all String Type, so change to Boolean Type here
+            # front-end will limit to type input:0, 1
             new_status_tutor = bool(
                 strtobool(request.args.get('status_tutor')))
             new_status_student = bool(
@@ -827,8 +1012,7 @@ def myprofile_confirm():
             return jsonify(status=True)
         else:
             return jsonify(status=False, message='query_account is None.')
-    except Exception as ee:
-        print(str(ee))
+    except:
         return jsonify(status=False, message='Get account info failed.')
 
 
@@ -1033,5 +1217,7 @@ def reset_password():
             return jsonify(status=True)
 
 
+
 if __name__ == '__main__':
+    #build_sample_db()
     app.run(debug=True)
