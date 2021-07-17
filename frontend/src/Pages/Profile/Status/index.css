@@ -1,0 +1,31 @@
+.circle-tutor {
+  display: flex;
+  background-color: #f0f0fc;
+  border-radius: 50%;
+  margin-top: 10vh;
+  width: 15vw;
+  height: 15vw;
+}
+
+.circle-student {
+  display: flex;
+  background-color: #7b68ee;
+  border-radius: 50%;
+  margin-top: 10vh;
+  width: 15vw;
+  height: 15vw;
+}
+
+.circle-parent {
+  display: flex;
+  background-color: #7b94f7;
+  border-radius: 50%;
+  margin-top: 10vh;
+  width: 15vw;
+  height: 15vw;
+}
+
+.sub {
+  height: 100vh;
+  background-color: #fafbfc;
+}
