@@ -41,9 +41,9 @@ def hrs_calculate(starttime, endtime):
         :type enddate: str
         :rtype hrs: float
     """
-    starttime = datetime.datetime.strptime(starttime, '%H:%M:%S')
-    endtime = datetime.datetime.strptime(endtime, '%H:%M:%S')
-    hrs = divmod((endtime - starttime).total_seconds(), 3600)[0]
+    starttime = datetime.datetime.strptime(starttime, '%H:%M')
+    endtime = datetime.datetime.strptime(endtime, '%H:%M')
+    hrs = (endtime - starttime).seconds/3600  # Fix div issue (2021-07-14)
     return hrs
 
 

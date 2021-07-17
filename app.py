@@ -1,13 +1,13 @@
 import uuid
 import secrets
-
+import time
 from sqlalchemy.orm import create_session
 from models import *
 from extension import db, date_calculate, hrs_calculate, get_weekday, time_type, date_type
 from flask import Flask, json, render_template, request, jsonify, session, flash, redirect, logging, url_for
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_bcrypt import Bcrypt
-from datetime import timedelta
+from datetime import date, timedelta
 from distutils.util import strtobool
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from flask_mail import Mail, Message
@@ -47,81 +47,89 @@ app.config.update(
 
 @app.route('/')
 def index():
-    return 'HI'
+    return render_template('index.html')
 
 
-@app.route('/register', methods=['POST'])
+@app.route('/register', methods=['GET', 'POST'])
 def register():
-    # api 1
-    email = request.args.get('email')
-    username = request.args.get('username')
-    password = request.args.get('password')
-    status_tutor = request.args.get('status_tutor')
-    status_student = request.args.get('status_student')
-    status_parents = request.args.get('status_parents')
-    # Add personal_question (2021-07-13)
-    personal_question = request.args.get('personal_question')
-    try:
-        # Cheking that method is post and form is valid or not.
-        check = Account.query.filter_by(email=email).count()
-        if check == 0:
-            # if all is fine, generate hashed password
-            hashed_password = bcrypt.generate_password_hash(
-                password).decode('utf-8')
-            # create new user model object
-            new_user = Account(
-                email=email,
-                username=username,
-                password=hashed_password,
-                phone=' ',
-                status_tutor=int(status_tutor),
-                status_student=int(status_student),
-                status_parents=int(status_parents),
-                personal_question=personal_question
-            )
-            # saving user object into data base with hashed password
-            db.session.add(new_user)
-            db.session.commit()
-            flash('You have successfully registered', 'success')
-            # if registration successful, then redirecting to login Api
-            return jsonify({'status': True})
-        else:
-            return jsonify({'status': False, 'message': 'This account is already exists.'})
-    except:
-        return jsonify({'status': 'system error'})
+    if request.method == 'GET':
+        return render_template('register.html')
+    elif request.method == 'POST':
+        # api 1
+        email = request.form.get('email')
+        username = request.form.get('username')
+        password = request.form.get('password')
+        # Get status T/F (2021-07-14)
+        status_tutor = 0 if request.form.get('status_tutor') == None else 1
+        status_student = 0 if request.form.get('status_student') == None else 1
+        status_parents = 0 if request.form.get('status_parents') == None else 1
 
-
-@app.route('/login', methods=['POST'])
-def login():
-    # api 2
-    email = request.args.get('email')
-    password = request.args.get('password')
-    user_found = Account.query.filter_by(email=email).first()
-    try:
-        if user_found:
-            # if user exist in database than we will compare our database hased password and password come from login form
-            if bcrypt.check_password_hash(user_found.password, password):
-                # if password is matched, allow user to access and save email and username inside the session
-                flash('You have successfully logged in.', "success")
-                # session testing
-                # session.permanent -> True，30min expiration
-                session.permanent = True
-                session['logged_in'] = True
-                session['email'] = user_found.email
-                session['name'] = user_found.username
-                session['status_tutor'] = user_found.status_tutor
-                session['status_student'] = user_found.status_student
-                session['status_parents'] = user_found.status_parents
-
-                # After successful login, redirecting to select status page
-                return jsonify({'status': True})
+        # Add personal_question (2021-07-13)
+        personal_question = request.form.get('personal_question')
+        try:
+            # Cheking that method is post and form is valid or not.
+            check = Account.query.filter_by(email=email).count()
+            if check == 0:
+                # if all is fine, generate hashed password
+                hashed_password = bcrypt.generate_password_hash(
+                    password).decode('utf-8')
+                # create new user model object
+                new_user = Account(
+                    email=email,
+                    username=username,
+                    password=hashed_password,
+                    phone=' ',
+                    status_tutor=int(status_tutor),
+                    status_student=int(status_student),
+                    status_parents=int(status_parents),
+                    personal_question=personal_question
+                )
+                # saving user object into data base with hashed password
+                db.session.add(new_user)
+                db.session.commit()
+                flash('You have successfully registered', 'success')
+                # if registration successful, then redirecting to login Api
+                return render_template('login.html')
             else:
-                # if password is in correct , redirect to login page
-                return jsonify({'status': False, 'note': 'password is wrong'})
-        else:
-            return jsonify({'status': False, 'note': 'User is not found.'})
-    except:
-        return jsonify({'status': False, 'note': 'system error'})
+                return jsonify({'status': False, 'message': 'This account is already exists.'})
+        except:
+            return jsonify({'status': 'system error'})
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'GET':
+        return render_template('login.html')
+    elif request.method == 'POST':
+        # api 2
+        email = request.form.get('email')
+        password = request.form.get('password')
+        user_found = Account.query.filter_by(email=email).first()
+        try:
+            if user_found:
+                # if user exist in database than we will compare our database hased password and password come from login form
+                if bcrypt.check_password_hash(user_found.password, password):
+                    # if password is matched, allow user to access and save email and username inside the session
+                    flash('You have successfully logged in.', "success")
+                    # session testing
+                    # session.permanent -> True，30min expiration
+                    session.permanent = True
+                    session['logged_in'] = True
+                    session['email'] = user_found.email
+                    session['name'] = user_found.username
+                    session['status_tutor'] = user_found.status_tutor
+                    session['status_student'] = user_found.status_student
+                    session['status_parents'] = user_found.status_parents
+
+                    # After successful login, redirecting to select status page
+                    return redirect(url_for('status_select'))
+                else:
+                    # if password is in correct , redirect to login page
+                    return jsonify({'status': False, 'note': 'password is wrong'})
+            else:
+                return jsonify({'status': False, 'note': 'User is not found.'})
+        except:
+            return jsonify({'status': False, 'note': 'system error'})
 
 
 @app.route('/logout')
@@ -131,170 +139,201 @@ def logout():
     session['logged_in'] = False
     session.clear()
     # redirecting to home page
-    return 'Bye'
+    return redirect(url_for('login'))
 
 
-@app.route('/status', methods=['GET'])
+@app.route('/status', methods=['GET', 'POST'])
 def status_select():
     # api 3
-    email = session.get('email')
-    # status_tutor = session.get('status_tutor')
-    # status_student = session.get('status_stdent')
-    # status_parents = session.get('status_parents')
+    if request.method == 'GET':
+        email = session.get('email')
+        status_tutor = session.get('status_tutor')
+        status_student = session.get('status_student')
+        status_parents = session.get('status_parents')
+        return render_template('status.html', status_tutor=status_tutor, status_student=status_student, status_parents=status_parents)
 
-    # 先判斷資料庫是否有這組email存在
-    user_found = Account.query.filter_by(email=email).first()
-    if user_found:
-        user_status = request.args.get('user_status')
-        session['user_status'] = int(user_status)
-        # 找出該email的狀態有哪些
-        # Use session?
-        # user_status_tutor = user_found.status_tutor
-        # user_status_student = user_found.status_student
-        # user_status_parents = user_found.status_parents
-        return jsonify({"email": user_found.email, "status": user_status})
-        # 判斷get回來的使用者狀態為何，並檢查使用者是否有該種狀態，這邊看到時候前端的設計再來改
-    else:
-        return jsonify({'status': False, 'note': True})
+    if request.method == 'POST':
+        email = session.get('email')
+        user_found = Account.query.filter_by(email=email).first()
+        if user_found:
+            user_status = request.form.get('user_status')
+            session['user_status'] = int(user_status)
+            return redirect(url_for('get_class'))
+        else:
+            return jsonify({'status': False, 'note': True})
 
 
 @app.route('/class', methods=['GET'])
 def get_class():
     # api 4.1.1
     email = session.get('email')
-    filters_class = {'tutorEmail': email}
-    filters_account = {'email': email}
-    query_class = Class.query.filter_by(**filters_class).all()
-    query_account = Account.query.filter_by(**filters_account).first()
-    if query_class != None:
-        class_data = [{
-            'classid': item.classID,
-            'classname': item.className,
-            'payment_hrs': item.payment_hrs,
-            'payment_time': item.payment_time
-        } for item in query_class]
-        return jsonify(username=query_account.username, all_class=class_data)
-    else:
-        return jsonify(status=False, message='No class in this account.')
+    # Fix status missing issue (2021-07-14)
+    user_status = session.get('user_status')
+    if int(user_status) == 1:
+        filters_class_tutor = {'tutorEmail': email}
+        filters_account = {'email': email}
+        query_class = Class.query.filter_by(**filters_class_tutor).all()
+        query_account = Account.query.filter_by(**filters_account).first()
+        # Add username in session (2021-07-15)
+        session['username'] = query_account.username
+        if query_class != None:
+            class_data = [{
+                'classid': item.classID,
+                'classname': item.className,
+                'payment_hrs': item.payment_hrs,
+                'payment_time': item.payment_time
+            } for item in query_class]
+            return render_template('class.html', username=query_account.username, all_class=class_data, user_status=user_status)
+        else:
+            return jsonify(status=False, message='No class in this account.')
+    elif int(user_status) == 2 or int(user_status) == 3:
+        filters_class_attender = {'attenderEmail': email}
+        filters_account = {'email': email}
+        query_class = Class_Attender.query.filter_by(
+            **filters_class_attender).all()
+        query_account = Account.query.filter_by(**filters_account).first()
+        # Add username in session (2021-07-15)
+        session['username'] = query_account.username
+        class_data = []
+        if query_class != None:
+            for item in query_class:
+                filters_class = {'classID': item.classID}
+                query_class = Class.query.filter_by(**filters_class).first()
+                class_data.append({
+                    'classid': query_class.classID,
+                    'classname': query_class.className,
+                    'payment_hrs': query_class.payment_hrs,
+                    'payment_time': query_class.payment_time
+                })
+            return render_template('class.html', username=query_account.username, all_class=class_data, user_status=user_status)
+        else:
+            return jsonify(status=False, message='No class in this account.')
 
 
-@app.route('/class/create', methods=['POST'])
+@app.route('/class/create', methods=['GET', 'POST'])
 def create_class():
-    # api 4.1.2
-    tutorEmail = session.get('email')
-    className = request.args.get('classname')
-    filters_classname = {'className': className, 'tutorEmail': tutorEmail}
-    query_classname = Class.query.filter_by(**filters_classname).first()
-    if query_classname != None:
-        # Same class name already in this account -> ask user to use another name.
-        return jsonify(status=False, message='This class is already in your account. Use tag like xxx_1 to name the class.')
-    else:
-        try:
-            classID = str(uuid.uuid4())
-            weekday = request.args.get('weekday').split(',')
-            starttime = request.args.get('starttime').split(',')
-            endtime = request.args.get('endtime').split(',')
-            payment_hrs = request.args.get('payment_hrs')
-            payment_time = request.args.get('payment_time')
-            startdate = request.args.get('startdate')
-            enddate = request.args.get('enddate')
-            all_date = date_calculate(
-                startdate, enddate, weekday, starttime, endtime)
-            all_date = [item for item in all_date]
-            # Add url. (2021-07-10)
-            url = secrets.token_urlsafe(10)
-            # Add hours calculate limit. (2021-07-11)
-            for item in all_date:
-<<<<<<< HEAD
-                # Fix hour calculate issue (2021-07-12)
-                if hrs_calculate(item[2], item[3]) <= 0:
-=======
-                if hrs_calculate(item[2], item[3]) <= 0: # Fix hour calculate issue.
->>>>>>> 17ca7e26089a84d6d7977d54fb05b45b637ad824
-                    return jsonify(status=False, message='Time input error.')
-            # Insert new class into three tables.
-            class_init = Class(
-                classID,
-                className,
-                tutorEmail,
-                int(payment_hrs),
-                int(payment_time),
-                url)
-            class_time = [Class_Time(
-                classID,
-                item[0],
-                item[1],
-                item[2],
-                item[3],
-                ' ',
-                ' ',
-                0) for item in all_date]
-            attendance = [Attendance(
-                classID,
-                item[0],
-                item[2],
-                item[3],
-                0,
-                0,
-                0,
-                ' ',
-                hrs_calculate(item[2], item[3])) for item in all_date]
+    if request.method == 'GET':
+        return render_template('class_create.html')
+    elif request.method == 'POST':
+        # api 4.1.2
+        tutorEmail = session.get('email')
+        className = request.form.get('classname')
+        filters_classname = {'className': className, 'tutorEmail': tutorEmail}
+        query_classname = Class.query.filter_by(**filters_classname).first()
+        if query_classname != None:
+            # Same class name already in this account -> ask user to use another name.
+            return jsonify(status=False, message='This class is already in your account. Use tag like xxx_1 to name the class.')
+        else:
+            try:
+                classID = str(uuid.uuid4())
+                weekday = request.form.getlist('weekday')
+                starttime = request.form.getlist('starttime')
+                endtime = request.form.getlist('endtime')
+                payment_hrs = request.form.get('payment_hrs')
+                payment_time = request.form.get('payment_time')
+                startdate = request.form.get('startdate')
+                enddate = request.form.get('enddate')
+                starttime = [item for item in starttime if item != '']
+                endtime = [item for item in endtime if item != '']
+                all_date = date_calculate(
+                    startdate, enddate, weekday, starttime, endtime)
+                all_date = [item for item in all_date]
+                # Add url. (2021-07-10)
+                url = secrets.token_urlsafe(10)
+                # Add hours calculate limit. (2021-07-11)
+                for item in all_date:
+                    # Fix hour calculate issue (2021-07-12)
+                    if hrs_calculate(item[2], item[3]) <= 0:
+                        return jsonify(status=False, message='Time input error.')
+                # Insert new class into three tables.
+                class_init = Class(
+                    classID,
+                    className,
+                    tutorEmail,
+                    int(payment_hrs),
+                    int(payment_time),
+                    url)
+                class_time = [Class_Time(
+                    classID,
+                    item[0],
+                    item[1],
+                    item[2],
+                    item[3],
+                    ' ',
+                    ' ',
+                    0) for item in all_date]
+                attendance = [Attendance(
+                    classID,
+                    item[0],
+                    item[2],
+                    item[3],
+                    0,
+                    0,
+                    0,
+                    ' ',
+                    hrs_calculate(item[2], item[3])) for item in all_date]
 
-            db.session.add(class_init)
-            db.session.add_all(class_time)
-            db.session.add_all(attendance)
-            db.session.commit()
-            return jsonify(status=True)
-        except:
-            return jsonify(status=False, message='Create class failed.')
+                db.session.add(class_init)
+                db.session.add_all(class_time)
+                db.session.add_all(attendance)
+                db.session.commit()
+                return redirect(url_for('get_class'))
+            except:
+                return jsonify(status=False, message='Create class failed.')
 
 
-@app.route('/class/addmember', methods=['POST'])
+@ app.route('/class/addmember', methods=['GET', 'POST'])
 def add_member():
+    if request.method == 'GET':
+        return render_template('class_add_member.html')
     # api 4.1.3
     # Fix adding invalid user issue. (2021-07-13)
-    try:
-        classID = request.args.get('classid')
-        attenderemail = request.args.get('attenderemail').split(',')
-        filters_attenderemail = {'classID': classID}
-        query_attenderemail = [item.attenderEmail for item in Class_Attender.query.filter_by(
-            **filters_attenderemail).all()]
+    elif request.method == 'POST':
+        try:
+            classID = request.args.get('classid')
+            attenderemail = request.args.get('attenderemail').split(',')
+            filters_attenderemail = {'classID': classID}
+            query_attenderemail = [item.attenderEmail for item in Class_Attender.query.filter_by(
+                **filters_attenderemail).all()]
 
-        # Check whether attender is in the class.
-        new_attender = []
-        exist_attender = []
-        for item in attenderemail:
-            if item not in query_attenderemail:
-                new_attender.append(item)
-            else:
-                exist_attender.append(item)
+            # Check whether attender is in the class.
+            new_attender = []
+            exist_attender = []
+            for item in attenderemail:
+                if item not in query_attenderemail:
+                    new_attender.append(item)
+                else:
+                    exist_attender.append(item)
 
-        # Check whether user is in the db. (invalid user issue)
-        valid_attender = []
-        invalid_attender = []
-        for item in new_attender:
-            query_user_check = Account.query.filter_by(email=item).first()
-            if query_user_check != None and (query_user_check.status_student or query_user_check.status_parents):
-                valid_attender.append(item)
-            elif not (query_user_check.status_student or query_user_check.status_parents):
-                invalid_attender.append([item, 'Status_locked.'])
-            else:
-                invalid_attender.append([item, 'User is not exist.'])
-        # Insert new attender into Class_Attender table.
-        class_attender = [Class_Attender(classID, item)
-                          for item in valid_attender]
-        db.session.add_all(class_attender)
-        db.session.commit()
-        return jsonify(status=True, duplicate_attender=exist_attender, invalid_attender=invalid_attender)
-    except:
-        return jsonify(status=False, message='Add member failed.')
+            # Check whether user is in the db. (invalid user issue)
+            valid_attender = []
+            invalid_attender = []
+            for item in new_attender:
+                query_user_check = Account.query.filter_by(email=item).first()
+                if query_user_check != None and (query_user_check.status_student or query_user_check.status_parents):
+                    valid_attender.append(item)
+                elif not (query_user_check.status_student or query_user_check.status_parents):
+                    invalid_attender.append([item, 'Status_locked.'])
+                else:
+                    # Change the description (2021-07-14)
+                    invalid_attender.append(
+                        [item, 'This email is not registered.'])
+            # Insert new attender into Class_Attender table.
+            class_attender = [Class_Attender(classID, item)
+                              for item in valid_attender]
+            db.session.add_all(class_attender)
+            db.session.commit()
+            return jsonify(status=True, duplicate_attender=exist_attender, invalid_attender=invalid_attender)
+        except:
+            return jsonify(status=False, message='Add member failed.')
 
 
-@app.route('/class/delete', methods=['DELETE'])
+@ app.route('/class/delete', methods=['DELETE'])
 def delete_class():
     # api 4.1.4
     try:
-        classID = request.args.get('classid')
+        data = request.get_json()
+        classID = data['classid']
         filters_class_delete = {'classID': classID}
         # Keep the record in Attendance, Class_Attender and QA tables.
         Class.query.filter_by(**filters_class_delete).delete()
@@ -307,7 +346,7 @@ def delete_class():
 
 # 2021-07-10
 # Add share_url route (api 4.1.5)
-@app.route('/class/url', methods=['GET'])
+@ app.route('/class/url', methods=['GET'])
 def share_url():
     # api 4.1.5
     try:
@@ -324,12 +363,13 @@ def share_url():
 # todolist (api 4.2.1)
 # todolist/upcoming (api 4.2.7)
 # todolist/done (api 4.2.8)
-@app.route('/todolist', methods=['GET'])
+@ app.route('/todolist', methods=['GET'])
 def todolist():
     # api 4.2.1
     # Use session to get email and status.
     email = session.get('email')
     user_status = session.get('user_status')
+    username = session.get('username')
     case = user_status  # 1 for tutor, 2 for student and 3 for parents.
     if int(case) == 1:
         try:
@@ -337,7 +377,7 @@ def todolist():
             query_class = Class.query.filter_by(**filters_tutor).all()
             class_dic = {
                 item.className: item.classID for item in query_class}
-            return jsonify(status=True, class_list=class_dic)
+            return render_template('todolist.html', class_list=class_dic, username=username)
         except:
             return jsonify(status=False, message='Get todolist failed.')
     elif (int(case) == 2) or (int(case) == 3):
@@ -351,7 +391,7 @@ def todolist():
                 query_class_name = Class.query.filter_by(
                     **filters_classid).first()
                 class_dic[query_class_name.className] = item.classID
-            return jsonify(status=True, class_list=class_dic)
+            return render_template('todolist.html', class_list=class_dic, username=username, user_status=user_status)
         except:
             return jsonify(status=False, message='Get todolist failed.')
 
@@ -360,6 +400,7 @@ def todolist():
 def todolist_upcoming():
     # api 4.2.7
     if request.method == 'GET':
+        user_status = session.get('user_status')
         try:
             classID = request.args.get('classid')
             filters_classid = {'classID': classID}
@@ -379,7 +420,7 @@ def todolist_upcoming():
                         'hw': item.hw
                     }
                     todo_lst.append(todo)
-            return jsonify(status=True, classname=query_class_name.className, todo_item=todo_lst)
+            return render_template('todolist.html', classname=query_class_name.className, todo_item=todo_lst, user_status=user_status)
         except:
             return jsonify(status=False, message='Get todolist upcoming failed.')
 
@@ -466,7 +507,8 @@ def todolist_upcoming():
 def delete_todolist():
     # api 4.2.4
     try:
-        classtimeID = request.args.get('classtimeid')
+        data = request.get_json()
+        classtimeID = data['classtimeid']
         # Delete todolist item directly will also delete attendance item.
         filters_todolist_delete = {'classtimeID': classtimeID}
         filters_attendance_delete = {'attendanceID': classtimeID}
@@ -482,7 +524,8 @@ def delete_todolist():
 def finished_todolist():
     # api 4.2.5
     try:
-        classtimeID = request.args.get('classtimeid')
+        data = request.get_json()
+        classtimeID = data['classtimeid']
         # Update the data to Todolist_Done table first.
         filters_todolist_done = {'classtimeID': classtimeID}
         query_todolist_done = Class_Time.query.filter_by(
@@ -497,7 +540,7 @@ def finished_todolist():
             query_todolist_done.lesson,
             query_todolist_done.hw)
         db.session.add(todolist_backup)
-        # Udpate the "done" column of the classtime item in Class_Time
+        # Update the "done" column of the classtime item in Class_Time
         query_todolist_done.done = 1
         db.session.commit()
         return jsonify(status=True)
@@ -958,7 +1001,7 @@ def send_mail(recipients, subject, context, **kwargs):
     """
     msg = Message(subject, recipients=recipients)
     msg.body = context
-    #msg.html = render_template(template + '.html', **kwargs)
+    # msg.html = render_template(template + '.html', **kwargs)
     thr = Thread(target=send_async_email, args=[app, msg])
     thr.start()
     return thr
