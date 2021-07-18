@@ -7,3 +7,4 @@ flask_mail
 flask_cors
 flask_admin
 pyjwt
+python-dotenv
