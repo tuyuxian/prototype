@@ -2,16 +2,56 @@ import React from "react";
 import { withRouter } from "react-router";
 import './index.css';
 import '../../assets/style.css';
-import { 
-Container, 
-Row, 
-Col,
-Form,
-Button,
-Modal
+import {
+  Container,
+  Row,
+  Col,
+  Form,
+  Button,
+  Modal
 } from "react-bootstrap";
+//import axios from 'axios';
+import ApiUtil from '../../Utils/ApiUtils';
+import HttpUtil from '../../Utils/HttpUtils';
 
 class Login extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = {
+      email: '',
+      password: ''
+    };
+
+    this.handleChange = this.handleChange.bind(this);
+    this.handleClick = this.handleClick.bind(this)
+
+  }
+
+  handleClick(event) {
+    var values = { email: this.state.email, password: this.state.password };
+    event.preventDefault();
+    HttpUtil.post(ApiUtil.API_Login_Post, values)
+      .then(
+        response => {
+          console.log(response['status']);
+          console.log(response['message']);
+          this.props.history.push('/Status', response) // send the email and account status T/F to front-end
+        }
+      )
+      .catch(error => {
+        //message.error(error.message);
+      });
+  }
+
+  handleChange(event) {
+    const target = event.target;
+    const value = target.value;
+    const name = target.type;
+
+    this.setState({
+      [name]: value
+    });
+  }
   render() {
     return (
       <>
@@ -26,20 +66,20 @@ class Login extends React.Component {
                     </Col>
                   </Row>
                   <Form>
-                    <Row  className="mb-3 justify-content-center">
+                    <Row className="mb-3 justify-content-center">
                       <Col xs={9}>
                         <Form.Group controlId="formBasicEmail">
                           <Form.Label>Email</Form.Label>
-                          <Form.Control className="inputbar" type="email" placeholder="Enter email" autoFocus/>
+                          <Form.Control className="inputbar" type="email" value={this.state.email} onChange={this.handleChange} placeholder="Enter email" autoFocus />
                         </Form.Group>
                       </Col>
                     </Row>
 
-                    <Row  className="mb-3 justify-content-center">
+                    <Row className="mb-3 justify-content-center">
                       <Col xs={9}>
                         <Form.Group className="mb-3" controlId="formBasicPassword">
                           <Form.Label>Password</Form.Label>
-                          <Form.Control className="inputbar" type="password" placeholder="Password" />
+                          <Form.Control className="inputbar" type="password" value={this.state.password} onChange={this.handleChange} placeholder="Password" />
                         </Form.Group>
                       </Col>
                     </Row>
@@ -54,10 +94,10 @@ class Login extends React.Component {
                         {/* <Button className="btn-submit" type="submit">
                           Log In
                         </Button> */}
-                        <Button className="btn-submit" href="/Profile">
+                        <Button className="btn-submit" onClick={this.handleClick} >
                           Log In
                         </Button>
-                      </Col>  
+                      </Col>
                     </Row>
                   </Form>
                 </Modal.Body>

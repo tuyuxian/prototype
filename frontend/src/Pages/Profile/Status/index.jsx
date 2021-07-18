@@ -3,10 +3,10 @@ import { withRouter } from "react-router";
 import './index.css';
 import '../index.css';
 import '../../../assets/style.css';
-import { 
-Container, 
-Row, 
-Col
+import {
+  Container,
+  Row,
+  Col
 } from "react-bootstrap";
 
 class Status extends React.Component {
@@ -15,12 +15,12 @@ class Status extends React.Component {
       <>
         <div class="sub">
           <Container fluid>
-            <Row className="justify-content-center"> 
+            <Row className="justify-content-center">
               <Col>
                 <h1 className="banner text-center">Today, I'm</h1>
               </Col>
             </Row>
-            <Row className="justify-content-center"> 
+            <Row className="justify-content-center">
               <Col xs={4}>
                 <div className="circle-tutor mx-auto d-block"></div>
               </Col>

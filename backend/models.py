@@ -1,7 +1,15 @@
+from time import time
+from app import app
 from extension import db
-from datetime import datetime
-from datetime import date
-today = date.today()
+from datetime import datetime, date
+import jwt
+from flask_login import UserMixin
+from time import time
+
+
+class User(UserMixin):
+    pass
+
 
 class Account(db.Model):
     __tablename__ = 'Account'
@@ -29,6 +37,21 @@ class Account(db.Model):
         self.status_student = status_student
         self.status_parents = status_parents
         self.personal_question = personal_question
+
+    def get_reset_password_token(email, expires_in=600):
+        return jwt.encode(
+            {'reset_password': email, 'exp': time() + expires_in},
+            app.config['SECRET_KEY'], algorithm='HS256')
+
+    @ staticmethod
+    def verify_reset_password_token(token):
+        try:
+            id = jwt.decode(token, app.config['SECRET_KEY'],
+                            algorithms=['HS256'])['reset_password']
+        except:
+            return
+        return Account.query.get(id)
+
 
 class Class(db.Model):
     __tablename__ = 'Class'
@@ -133,9 +156,9 @@ class QA(db.Model):
     update_time = db.Column(
         db.DateTime, onupdate=datetime.now, default=datetime.now)
 
-    def __init__(self, classID, question, reply, date=today.strftime('%Y-%m-%d')):
+    def __init__(self, classID, question, reply):
         self.classID = classID
-        self.date = date
+        self.date = date.today().strftime('%Y-%m-%d')
         self.question = question
         self.reply = reply
 
@@ -166,12 +189,14 @@ class Todolist_Done(db.Model):
         self.lesson = lesson
         self.hw = hw
 
+
 class Admin(db.Model):
-    __tablename__='Admin'
+    __tablename__ = 'Admin'
     id = db.Column(db.Integer, primary_key=True)
     login = db.Column(db.String(80))
     password = db.Column(db.String(100))
-    def __init__(self,login,password):
+
+    def __init__(self, login, password):
         self.login = login
         self.password = password
 
@@ -196,5 +221,3 @@ class Admin(db.Model):
     # Required for administrative interface
     def __unicode__(self):
         return self.username
-
-
