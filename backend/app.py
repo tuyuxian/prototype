@@ -26,8 +26,7 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-app = Flask(__name__, template_folder="../frontend/templates/",
-            static_folder="../frontend/build/static/", static_url_path="")
+app = Flask(__name__, static_folder='./static/build', static_url_path='/')
 CORS(app)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
@@ -167,7 +166,7 @@ admin = admin.Admin(app, 'Tutor', index_view=MyAdminIndexView(),
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return app.send_static_file('index.html')
 
 
 @app.route('/register', methods=['GET', 'POST'])

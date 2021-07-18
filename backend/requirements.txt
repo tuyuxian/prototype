@@ -1,0 +1,9 @@
+sqlalchemy
+flask_sqlalchemy
+Flask
+flask_bcrypt
+flask_login
+flask_mail
+flask_cors
+flask_admin
+pyjwt
