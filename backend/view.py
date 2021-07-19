@@ -1,13 +1,14 @@
 import uuid
 import secrets
-import time
+import jwt
+from time import time
 from sqlalchemy.orm import create_session
 from models import *
 from extension import db, date_calculate, hrs_calculate, get_weekday, time_type, date_type
 from flask import Flask, json, render_template, request, jsonify, session, flash, redirect, logging, url_for
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_bcrypt import Bcrypt
-from datetime import date, timedelta
+from datetime import timedelta
 from distutils.util import strtobool
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from flask_mail import Mail, Message
@@ -15,23 +16,25 @@ from flask_cors import CORS
 from threading import Thread
 
 # 2021/7/13 更新的部分admin
-from wtforms import form, fields, validators
 import flask_admin as admin
 import flask_login as login
 from flask_admin.contrib import sqla
 from flask_admin import helpers, expose
-
+from form import *
 # env
 import os
 from dotenv import load_dotenv
 load_dotenv()
 
-app = Flask(__name__, static_folder='./static/build', static_url_path='/')
-CORS(app)
+app = Flask(__name__)
+# ,static_folder='../backend/static/build/',template_folder="../backend/templates/", static_url_path='/')
+
+
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI')
+CORS(app)
 db.init_app(app)
 bcrypt = Bcrypt(app)
 mail = Mail(app)
@@ -52,36 +55,6 @@ app.config.update(
 )
 
 # 2021/7/13 更新的部分admin, DataBase需要再多新增一個Admin的table,作為管理員帳號管理用
-
-# Define login and registration forms (for flask-login)
-
-
-class LoginForm(form.Form):
-    login = fields.StringField(validators=[validators.required()])
-    password = fields.PasswordField(validators=[validators.required()])
-
-    def validate_login(self, field):
-        user = self.get_user()
-        if user is None:
-            raise validators.ValidationError('Invalid user')
-
-        # we're comparing the plaintext pw with the the hash from the db
-        if user.password != self.password.data:
-            # to compare plain text passwords use
-            raise validators.ValidationError('Invalid password')
-
-    def get_user(self):
-        return db.session.query(Admin).filter_by(login=self.login.data).first()
-
-
-class RegistrationForm(form.Form):
-    login = fields.StringField(validators=[validators.required()])
-    password = fields.PasswordField(validators=[validators.required()])
-
-    def validate_login(self, field):
-        if db.session.query(Admin).filter_by(login=self.login.data).count() > 0:
-            raise validators.ValidationError('Duplicate username')
-
 # Initialize flask-login
 
 
@@ -126,23 +99,6 @@ class MyAdminIndexView(admin.AdminIndexView):
 
         return super(MyAdminIndexView, self).index()
 
-    @expose('/register/', methods=('GET', 'POST'))
-    def register_view(self):
-        form = RegistrationForm(request.form)
-        if helpers.validate_form_on_submit(form):
-            user = Admin()
-
-            form.populate_obj(user)
-            # we hash the users password to avoid saving it as plaintext in the db,
-            # remove to use plain text:
-            user.password = generate_password_hash(form.password.data)
-            db.session.add(user)
-            db.session.commit()
-            login_user(user)
-            return redirect(url_for('.index'))
-
-        return super(MyAdminIndexView, self).index()
-
     @expose('/logout/')
     def logout_view(self):
         logout_user()
@@ -155,25 +111,46 @@ init_login()
 admin = admin.Admin(app, 'Tutor', index_view=MyAdminIndexView(),
                     base_template='my_master.html')
 
-# admin.add_view(MyModelView(Account, db.session))
-# admin.add_view(MyModelView(Class, db.session))
-# admin.add_view(MyModelView(Class_Attender, db.session))
-# admin.add_view(MyModelView(Class_Time, db.session))
-# admin.add_view(MyModelView(Attendance, db.session))
-# admin.add_view(MyModelView(QA, db.session))
-# admin.add_view(MyModelView(Todolist_Done, db.session))
+admin.add_view(MyModelView(Account, db.session))
+admin.add_view(MyModelView(Class, db.session))
+admin.add_view(MyModelView(Class_Attender, db.session))
+admin.add_view(MyModelView(Class_Time, db.session))
+admin.add_view(MyModelView(Attendance, db.session))
+admin.add_view(MyModelView(QA, db.session))
+admin.add_view(MyModelView(Todolist_Done, db.session))
+
+
+class AccountResetPassword(Account):
+    def get_reset_password_token(email, expires_in=600):
+        return jwt.encode(
+            {'reset_password': email, 'exp': time() + expires_in},
+            app.config['SECRET_KEY'], algorithm='HS256')
+
+    @ staticmethod
+    def verify_reset_password_token(token):
+        try:
+            id = jwt.decode(token, app.config['SECRET_KEY'],
+                            algorithms=['HS256'])['reset_password']
+        except:
+            return
+        return Account.query.get(id)
 
 
 @app.route('/')
 def index():
-    return app.send_static_file('index.html')
+    return render_template('index.html')
 
 
-@app.route('/register', methods=['GET', 'POST'])
+# @app.errorhandler(404)
+# def not_found(e):
+#     return render_template("index.html")
+
+
+@app.route('/Register', methods=['GET', 'POST'])
 def register():
-    # if request.method == 'GET':
-    #     return jsonify({'status': True})
-    if request.method == 'POST':
+    if request.method == 'GET':
+        return render_template("index.html")
+    elif request.method == 'POST':
         # api 1
         data = request.get_json()
         email = data['email']
@@ -214,11 +191,11 @@ def register():
             return jsonify({'status': False, 'message': 'system error'})
 
 
-@app.route('/login', methods=['GET', 'POST'])
+@app.route('/Login', methods=['GET', 'POST'])
 def login():
-    # if request.method == 'GET':
-    #     return render_template('login.html')
-    if request.method == 'POST':
+    if request.method == 'GET':
+        return render_template("index.html")
+    elif request.method == 'POST':
         # api 2
         data = request.get_json()
         email = data['email']
@@ -250,7 +227,7 @@ def login():
                     })
                 else:
                     # if password is in correct , redirect to login page
-                    return jsonify({'status': False, 'message': 'password is wrong'})
+                    return redirect('/Login')
             else:
                 return jsonify({'status': False, 'message': 'User is not found.'})
         except:
@@ -264,13 +241,15 @@ def logout():
     session['logged_in'] = False
     session.clear()
     # redirecting to home page
-    return jsonify({'status': True})
+    return render_template('login.html')
+    # return jsonify({'status': True})
 
 
-@app.route('/status', methods=['GET', 'POST'])
+@app.route('/Status', methods=['GET', 'POST'])
 def status_select():
     # api 3
-    # if request.method == 'GET':
+    if request.method == 'GET':
+        return render_template("index.html")
     #     email = session.get('email')
     #     status_tutor = session.get('status_tutor')
     #     status_student = session.get('status_student')
@@ -1069,33 +1048,36 @@ def invite_login(tutor, classid, classname):
             return jsonify({'status': False, 'note': 'system error'})
 
 
-@app.route('/forgetpassword', methods=['POST'])
+@app.route('/forget', methods=['GET', 'POST'])
 def forget_password():
+    if request.method == 'GET':
+        return render_template("index.html")
     # api 2.2
-    try:
-        if session['logged_in']:
-            return jsonify(status=False, message='User already login.')
-    except KeyError:
-        email = request.get_json()['email']
-        #email = request.args.get('email')
-        # Check the user is in the database.
-        query_user = Account.query.filter_by(email=email).first()
-        # need token here
-        token = Account.get_reset_password_token(email)
-        msg_title = 'Reset Your Password'
-        #msg_recipients = [query_user.email]
-        msg_body = 'Use this url to reset your password.'
+    elif request.method == 'POST':
+        try:
+            if session['logged_in']:
+                return jsonify(status=False, message='User already login.')
+        except KeyError:
+            email = request.get_json()['email']
+            #email = request.args.get('email')
+            # Check the user is in the database.
+            query_user = Account.query.filter_by(email=email).first()
+            # need token here
+            token = AccountResetPassword.get_reset_password_token(email)
+            msg_title = 'Reset Your Password'
+            #msg_recipients = [query_user.email]
+            msg_body = 'Use this url to reset your password.'
 
-        # send_mail(recipients=msg_recipients,
-        #           subject=msg_title,
-        #           context=msg_body
-        #           #    template='author/mail/resetmail',
-        #           #    mailtype='html',
-        #           #    user=query_user.username,
-        #           #    token=token
-        #           )
-        flash('Please Check Your Email. Then Click link to Reset Password')
-        return jsonify(status=True, message='Reset mail sent.')
+            # send_mail(recipients=msg_recipients,
+            #           subject=msg_title,
+            #           context=msg_body
+            #           #    template='author/mail/resetmail',
+            #           #    mailtype='html',
+            #           #    user=query_user.username,
+            #           #    token=token
+            #           )
+            flash('Please Check Your Email. Then Click link to Reset Password')
+            return jsonify(status=True, message='Reset mail sent.')
 # Message(subject='', recipients=None, body=None,
 #                          html=None, sender=None, cc=None, bcc=None,
 #                          attachments=None, reply_to=None, date=None,
@@ -1129,15 +1111,15 @@ def send_mail(recipients, subject, context, **kwargs):
     return thr
 
 
-@app.route('/resetpassword', methods=['GET', 'PUT'])
+@app.route('/Reset', methods=['GET', 'PUT'])
 def reset_password():
     # api 2.3
-    # if request.method == 'GET':
-    #     try:
-    #         if session['logged_in']:
-    #             return jsonify(status=False, message='User already login.')
-    #     except KeyError:
-    #         return 'reset password'
+    if request.method == 'GET':
+        try:
+            if session['logged_in']:
+                return jsonify(status=False, message='User already login.')
+        except KeyError:
+            return render_template("index.html")
 
     if request.method == 'PUT':
         try:
@@ -1153,8 +1135,3 @@ def reset_password():
                 query_user_reset_pwd.password = hash_newpassword
                 db.session.commit()
             return jsonify(status=True, message='New password has been set.')
-
-
-if __name__ == '__main__':
-    # build_sample_db()
-    app.run(debug=True)

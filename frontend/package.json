@@ -19,11 +19,11 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject",
     "prebuild": "rm -rf ../backend/templates/index.html && rm -rf ../backend/static/build",
-    "postbuild": "mv build/index.html ../backend/templates/ &&  mv build ../backend/static/"
+    "build": "react-scripts build",
+    "postbuild": "mv build/index.html ../backend/templates/ &&  mv build ../backend/static/",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
   },
   "eslintConfig": {
     "extends": [
@@ -47,5 +47,6 @@
     "eslint": "^7.30.0",
     "prettier": "^2.3.2"
   },
-  "proxy": "http://127.0.0.1:5000"
+  "proxy": "http://127.0.0.1:5000",
+  "homepage": "."
 }

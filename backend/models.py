@@ -1,10 +1,6 @@
-from time import time
-from app import app
 from extension import db
 from datetime import datetime, date
-import jwt
 from flask_login import UserMixin
-from time import time
 
 
 class User(UserMixin):
@@ -38,19 +34,19 @@ class Account(db.Model):
         self.status_parents = status_parents
         self.personal_question = personal_question
 
-    def get_reset_password_token(email, expires_in=600):
-        return jwt.encode(
-            {'reset_password': email, 'exp': time() + expires_in},
-            app.config['SECRET_KEY'], algorithm='HS256')
+    # def get_reset_password_token(email, expires_in=600):
+    #     return jwt.encode(
+    #         {'reset_password': email, 'exp': time() + expires_in},
+    #         app.config['SECRET_KEY'], algorithm='HS256')
 
-    @ staticmethod
-    def verify_reset_password_token(token):
-        try:
-            id = jwt.decode(token, app.config['SECRET_KEY'],
-                            algorithms=['HS256'])['reset_password']
-        except:
-            return
-        return Account.query.get(id)
+    # @ staticmethod
+    # def verify_reset_password_token(token):
+    #     try:
+    #         id = jwt.decode(token, app.config['SECRET_KEY'],
+    #                         algorithms=['HS256'])['reset_password']
+    #     except:
+    #         return
+    #     return Account.query.get(id)
 
 
 class Class(db.Model):
