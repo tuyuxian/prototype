@@ -26,7 +26,7 @@ class Reset extends React.Component {
   handleClick(event) {
     var values = { newpassword: this.state.password };
     event.preventDefault();
-    HttpUtil.put(ApiUtil.API_ResetPassword_Post + '?email=163@gmail.com', values)
+    HttpUtil.put(ApiUtil.API_ResetPassword_Post, values)
       .then(
         response => {
           console.log(response);
