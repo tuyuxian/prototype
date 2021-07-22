@@ -5,7 +5,7 @@ from time import time
 from sqlalchemy.orm import create_session
 from app_tutor.func.models import *
 from app_tutor.func.extension import db, date_calculate, hrs_calculate, get_weekday, time_type, date_type
-from flask import Flask, json, render_template, request, jsonify, session, flash, redirect, logging, url_for
+from flask import Flask, json, render_template, request, jsonify, session, flash, redirect, logging, url_for, abort
 from werkzeug.security import generate_password_hash, check_password_hash
 from distutils.util import strtobool
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
@@ -200,8 +200,9 @@ def login():
                         'status_parents': session.get('status_parents')
                     })
                 else:
-                    # if password is in correct , redirect to login page
-                    return redirect('/Login')
+                    # if password is incorrect , redirect to login page
+                    return redirect(url_for('login'))
+                    # return jsonify(status=False)
             else:
                 return jsonify({'status': False, 'message': 'User is not found.'})
         except:

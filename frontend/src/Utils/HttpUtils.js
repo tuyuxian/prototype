@@ -20,13 +20,18 @@ export default class HttpUtil {
         return new Promise((resolve, reject) => {
             fetch(url, {
                 method: 'POST',
+                //redirect: 'manual',
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(data)
             })
-                .then(response => response.json())
+                .then(response => {
+                    if (response.redirected) {
+                        window.location.href = response.url;
+                    } else { response.json() }
+                })
                 .then(result => resolve(result))
                 .catch(error => {
                     reject(error);

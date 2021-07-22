@@ -19,9 +19,9 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "prebuild": "rm -rf ../backend/templates/index.html && rm -rf ../backend/static/build",
+    "prebuild": "rm -rf ../backend/app_tutor/templates/index.html && rm -rf ../backend/app_tutor/static/build",
     "build": "react-scripts build",
-    "postbuild": "mv build/index.html ../backend/templates/ &&  mv build ../backend/static/",
+    "postbuild": "mv build/index.html ../backend/app_tutor/templates/ &&  mv build ../backend/app_tutor/static/",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
