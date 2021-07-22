@@ -1,14 +1,12 @@
 import uuid
 import secrets
-import jwt
-from time import time
 from sqlalchemy.orm import create_session
 from app_tutor.func.models import *
 from app_tutor.func.extension import db, date_calculate, hrs_calculate, get_weekday, time_type, date_type
 from flask import Flask, json, render_template, request, jsonify, session, flash, redirect, logging, url_for, abort
 from werkzeug.security import generate_password_hash, check_password_hash
 from distutils.util import strtobool
-from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from flask_login import login_user, logout_user, login_required, current_user
 from flask_mail import Message
 from threading import Thread
 
@@ -21,13 +19,12 @@ from app_tutor.func.form import *
 from app_tutor import app
 from app_tutor import mail
 from app_tutor import bcrypt
+from app_tutor import login_manager
 
-# login_manager = LoginManager()
-# login_manager.init_app(app)
-# login_manager.session_protection = "basic"
-# login_manager.login_view = 'login'
-# login_manager.login_message = 'Please Login First.'
 
+@login_manager.user_loader
+def get_user(email):
+    return Account.query.get(email)
 # 2021/7/13 更新的部分admin, DataBase需要再多新增一個Admin的table,作為管理員帳號管理用
 # Initialize flask-login
 
@@ -92,22 +89,6 @@ admin.add_view(MyModelView(Class_Time, db.session))
 admin.add_view(MyModelView(Attendance, db.session))
 admin.add_view(MyModelView(QA, db.session))
 admin.add_view(MyModelView(Todolist_Done, db.session))
-
-
-class AccountResetPassword(Account):
-    def get_reset_password_token(email, expires_in=600):
-        return jwt.encode(
-            {'reset_password': email, 'exp': time() + expires_in},
-            app.config['SECRET_KEY'], algorithm='HS256')
-
-    @ staticmethod
-    def verify_reset_password_token(token):
-        try:
-            id = jwt.decode(token, app.config['SECRET_KEY'],
-                            algorithms=['HS256'])['reset_password']
-        except:
-            return
-        return Account.query.get(id)
 
 
 @app.route('/')
@@ -183,6 +164,7 @@ def login():
                     flash('You have successfully logged in.', "success")
                     # session testing
                     # session.permanent -> True，30min expiration
+                    login_user(user_found)
                     session.permanent = True
                     session['logged_in'] = True
                     session['email'] = user_found.email
@@ -215,8 +197,9 @@ def logout():
     # Removing data from session by setting logged_flag to False.
     session['logged_in'] = False
     session.clear()
+    logout_user()
     # redirecting to home page
-    return render_template('login.html')
+    return 'bye'
     # return jsonify({'status': True})
 
 
@@ -674,7 +657,7 @@ def recover_todolist():
         return jsonify(status=False, message='Recover todo item failed.')
 
 
-@app.route('/attendance/<classID>', methods=['GET'])
+@app.route('/Attendance/<classID>', methods=['GET'])
 def attendance(classID):
     # api 4.3.1 & 4.4.1
     try:
@@ -1038,7 +1021,7 @@ def forget_password():
             # Check the user is in the database.
             query_user = Account.query.filter_by(email=email).first()
             # need token here
-            token = AccountResetPassword.get_reset_password_token(email)
+            token = query_user.get_reset_password_token()
             msg_title = 'Reset Your Password'
             msg_recipients = [query_user.email]
             msg_body = 'Use this url to reset your password.'
@@ -1078,7 +1061,7 @@ def reset_password():
                 return jsonify(status=False, message='User already login.')
         except KeyError:
             token = request.args.get('token')
-            reset_token = AccountResetPassword.verify_reset_password_token(
+            reset_token = Account.verify_reset_password_token(
                 token)
             session['reset_user_email'] = reset_token.email
             return render_template("index.html")
