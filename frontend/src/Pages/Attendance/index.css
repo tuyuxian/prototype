@@ -19,20 +19,54 @@ a {
   }
 
 #attendance .col-md-12 {
-  border:4px #f0f0fc solid;
+  border:2px #f0f0fc solid;
   border-radius:10px;
   background-color:#f0f0fc;
-  margin-top: 5px;
-  margin-bottom: 5px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  box-shadow: 7px 7px 14px #cfcfcc, -7px -7px 14px #ffffff;
 }
-#attendance .form-check{
-  margin:0 auto;
-}
-
-#checkbox1{
-  /* justify-content:center;
-  align-items:center; */
-  margin:0 auto;
+#attendance .col-md-1\ check\ col{
   display:center;
 }
+#attendance svg{
+  display: block;
+  margin:0 auto;
+  /* color: #7b68ee; */
+}
 
+#record{
+  float:right;
+  background-color: #7b68ee;
+  border-radius:10px;
+  border-color:#7b68ee ;
+  position: fixed;
+  bottom: 40px;
+  right: 40px; 
+  box-shadow: 7px 7px 14px #cfcfcc, -7px -7px 14px #ffffff;
+}
+
+.modal-content {
+  width:600px; 
+  border-radius:10px;
+}
+
+#modal-button-create{
+  float:right;
+  background-color: #7b68ee;
+  border-radius:10px;
+  border-color:#7b68ee ;
+}
+
+
+#modal-button-cancel{
+  float:right;
+  border-radius:10px;
+  /* background-color: #f0f0fc;
+  border-color:#f0f0fc ; */
+}
+
+#note{
+  background-color: #f0f0fc;
+  margin-top: 5px;
+}

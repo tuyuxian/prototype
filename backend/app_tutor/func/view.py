@@ -666,19 +666,21 @@ def attendance(classID):
             **filters_attendance).first()
         query_attendance = Attendance.query.filter_by(
             **filters_attendance).all()
-        attendance_lst = [{'classID': classID, 'date': date_type(item.date), 'starttime': time_type(item.starttime), 'endtime': time_type(item.endtime),
+        query_attendance = sorted(query_attendance, key=lambda x: x.date)
+        attendance_lst = [{'attendanceID': item.attendanceID, 'date': date_type(item.date), 'starttime': time_type(item.starttime), 'endtime': time_type(item.endtime),
                            'check_tutor': item.check_tutor, 'check_studet': item.check_student, 'check_parents': item.check_parents, 'note': item.note, 'hrs': item.hrs} for item in query_attendance]
-        return jsonify(status=True, classname=query_class_name.className, attendance_item=attendance_lst)
+        return jsonify(status=True, classname=query_class_name.className, classID=classID, attendance_item=attendance_lst)
     except:
         return jsonify(status=False, message='Get attendance info failed.')
 
 
-@app.route('/attendance/note', methods=['PUT'])
+@app.route('/Attendance/note', methods=['PUT'])
 def attendance_note():
     # api 4.3.2
     try:
-        attendanceID = request.args.get('attendanceid')
-        note = request.args.get('note')
+        data = request.get_json()
+        attendanceID = data['attendanceid']
+        note = data['note']
         # Update note info into Attendance table.
         filters_note_update = {'attendanceID': attendanceID}
         query_note_update = Attendance.query.filter_by(
@@ -690,14 +692,15 @@ def attendance_note():
         return jsonify(status=False, message='Note confirm failed.')
 
 
-@app.route('/attendance/check', methods=['PUT'])
+@app.route('/Attendance/check', methods=['PUT'])
 def attendance_check():
     # api 4.3.3
     try:
-        attendanceID = request.args.get('attendanceid')
-        check_tutor = request.args.get('check_tutor')
-        check_student = request.args.get('check_student')
-        check_parents = request.args.get('check_parents')
+        data = request.get_json()
+        attendanceID = data['attendanceid']
+        check_tutor = data['check_tutor']
+        check_student = data['check_student']
+        check_parents = data['check_parents']
         # Update check info into Attendance table.
         filters_note_update = {'attendanceID': attendanceID}
         query_note_update = Attendance.query.filter_by(
@@ -711,15 +714,16 @@ def attendance_check():
         return jsonify(status=False, message='Attendance confirm failed.')
 
 
-@app.route('/attendance/create', methods=['POST'])
+@app.route('/Attendance/create', methods=['POST'])
 def create_attendance():
     # api 4.3.4
     try:
-        classID = request.args.get('classid')
-        date = request.args.get('date')
-        starttime = request.args.get('starttime')
-        endtime = request.args.get('endtime')
-        note = request.args.get('note')
+        data = request.get_json()
+        classID = data['classid']
+        date = data['date']
+        starttime = data['starttime']
+        endtime = data['endtime']
+        note = data['note']
         if hrs_calculate(starttime, endtime) <= 0:
             return jsonify(status=False, message='Time input error.')
         # Insert new attendance into Attendance table.
