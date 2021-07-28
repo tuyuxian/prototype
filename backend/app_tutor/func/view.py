@@ -3,19 +3,12 @@ import secrets
 from sqlalchemy.orm import create_session
 from app_tutor.func.models import *
 from app_tutor.func.extension import db, date_calculate, hrs_calculate, get_weekday, time_type, date_type
-from flask import Flask, json, render_template, request, jsonify, session, flash, redirect, logging, url_for, abort
+from flask import render_template, request, jsonify, session, flash, redirect, logging, url_for, abort
 from werkzeug.security import generate_password_hash, check_password_hash
 from distutils.util import strtobool
 from flask_login import login_user, logout_user, login_required, current_user
 from flask_mail import Message
 from threading import Thread
-
-# 2021/7/13 更新的部分admin
-import flask_admin as admin
-import flask_login as login
-from flask_admin.contrib import sqla
-from flask_admin import helpers, expose
-from app_tutor.func.form import *
 from app_tutor import app
 from app_tutor import mail
 from app_tutor import bcrypt
@@ -25,70 +18,6 @@ from app_tutor import login_manager
 @login_manager.user_loader
 def get_user(email):
     return Account.query.get(email)
-# 2021/7/13 更新的部分admin, DataBase需要再多新增一個Admin的table,作為管理員帳號管理用
-# Initialize flask-login
-
-
-def init_login():
-    login_manager = login.LoginManager()
-    login_manager.init_app(app)
-    # Create user loader function
-
-    @login_manager.user_loader
-    def load_user(user_id):
-        return db.session.query(Admin).get(user_id)
-
-# Create customized model view class
-
-
-class MyModelView(sqla.ModelView):
-    def is_accessible(self):
-        return current_user.is_authenticated
-
-# Create customized index view class that handles login & registration
-
-
-class MyAdminIndexView(admin.AdminIndexView):
-    @expose('/')
-    def index(self):
-        if not current_user.is_authenticated:
-            return redirect(url_for('.login_view'))
-        return super(MyAdminIndexView, self).index()
-
-    @expose('/login/', methods=('GET', 'POST'))
-    def login_view(self):
-        # handle user login
-        form = LoginForm(request.form)
-        if helpers.validate_form_on_submit(form):
-            user = form.get_user()
-            login_user(user)
-
-        if current_user.is_authenticated:
-            return redirect(url_for('.index'))
-
-        self._template_args['form'] = form
-
-        return super(MyAdminIndexView, self).index()
-
-    @expose('/logout/')
-    def logout_view(self):
-        logout_user()
-        return redirect(url_for('.index'))
-
-
-# Initialize flask-login
-init_login()
-# Create admin
-admin = admin.Admin(app, 'Tutor', index_view=MyAdminIndexView(),
-                    base_template='my_master.html')
-
-admin.add_view(MyModelView(Account, db.session))
-admin.add_view(MyModelView(Class, db.session))
-admin.add_view(MyModelView(Class_Attender, db.session))
-admin.add_view(MyModelView(Class_Time, db.session))
-admin.add_view(MyModelView(Attendance, db.session))
-admin.add_view(MyModelView(QA, db.session))
-admin.add_view(MyModelView(Todolist_Done, db.session))
 
 
 @app.route('/')
@@ -172,7 +101,7 @@ def login():
                     session['status_tutor'] = user_found.status_tutor
                     session['status_student'] = user_found.status_student
                     session['status_parents'] = user_found.status_parents
-
+                    session['user_status'] = 1
                     # After successful login, redirecting to select status page
                     return jsonify({
                         'status': True,
@@ -191,7 +120,7 @@ def login():
             return jsonify({'status': False, 'message': 'system error'})
 
 
-@app.route('/logout')
+@app.route('/Logout')
 def logout():
     # api 2.1
     # Removing data from session by setting logged_flag to False.
@@ -199,8 +128,7 @@ def logout():
     session.clear()
     logout_user()
     # redirecting to home page
-    return 'bye'
-    # return jsonify({'status': True})
+    return redirect(url_for('index'))
 
 
 @app.route('/Status', methods=['GET', 'POST'])
@@ -463,28 +391,28 @@ def todolist_upcoming():
     # api 4.2.7
     if request.method == 'GET':
         user_status = session.get('user_status')
-        try:
-            classID = request.args.get('classid')
-            filters_classid = {'classID': classID}
-            query_todo = Class_Time.query.filter_by(**filters_classid).all()
-            query_class_name = Class.query.filter_by(**filters_classid).first()
-            todo_lst = []
-            for item in query_todo:
-                if item.done == 0:  # 0 for upcoming ; 1 for done.
-                    todo = {
-                        'classtimeID': item.classtimeID,
-                        'classid': item.classID,
-                        'date': date_type(item.date),
-                        'weekday': item.weekday,
-                        'starttime': time_type(item.starttime),
-                        'endtime': time_type(item.endtime),
-                        'lesson': item.lesson,
-                        'hw': item.hw
-                    }
-                    todo_lst.append(todo)
-            return render_template('todolist.html', classname=query_class_name.className, todo_item=todo_lst, user_status=user_status)
-        except:
-            return jsonify(status=False, message='Get todolist upcoming failed.')
+        # try:
+        classID = request.args.get('classid')
+        filters_classid = {'classID': classID}
+        query_todo = Class_Time.query.filter_by(**filters_classid).all()
+        query_class_name = Class.query.filter_by(**filters_classid).first()
+        todo_lst = []
+        for item in query_todo:
+            if item.done == 0:  # 0 for upcoming ; 1 for done.
+                todo = {
+                    'classtimeID': item.classtimeID,
+                    'classid': item.classID,
+                    'date': date_type(item.date),
+                    'weekday': item.weekday,
+                    'starttime': time_type(item.starttime),
+                    'endtime': time_type(item.endtime),
+                    'lesson': item.lesson,
+                    'hw': item.hw
+                }
+                todo_lst.append(todo)
+        return render_template('todolist.html', classname=query_class_name.className, todo_item=todo_lst, user_status=user_status)
+        # except:
+        #     return jsonify(status=False, message='Get todolist upcoming failed.')
 
     # api 4.2.2
     elif request.method == 'PUT':
@@ -698,6 +626,7 @@ def attendance_check():
     try:
         data = request.get_json()
         attendanceID = data['attendanceid']
+        # Add session to identify the user status.
         check_tutor = data['check_tutor']
         check_student = data['check_student']
         check_parents = data['check_parents']

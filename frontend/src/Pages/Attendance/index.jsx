@@ -4,17 +4,9 @@ import { withRouter } from "react-router";
 import CheckCircleOutlinedIcon from '@material-ui/icons/CheckCircleOutlined';
 import MoreHorizIcon from '@material-ui/icons/MoreHoriz';
 import { IconButton, OutlinedInput, FormControl, InputLabel } from '@material-ui/core';
-
 import './index.css';
 import '../../assets/style.css';
-import {
-  Container,
-  Row,
-  Col,
-  Form,
-  Button,
-  Modal
-} from "react-bootstrap";
+import { Container, Row, Col, Form, Button, Modal } from "react-bootstrap";
 import ApiUtil from '../../Utils/ApiUtils';
 import HttpUtil from '../../Utils/HttpUtils';
 
@@ -94,7 +86,7 @@ class Attendance extends React.Component {
             classID: response['classID'],
             attendance_item: response['attendance_item']
           });
-          //console.log(this.state.attendance_item);
+          console.log(response);
         }
       )
       .catch(error => {
@@ -166,41 +158,43 @@ class Attendance extends React.Component {
   render() {
     const { classname, attendance_item, show, showInfo, showCheck } = this.state;
     let arrLists = attendance_item;
-    let lists = arrLists.map((list) =>
-      <Col md={12} xs={12}>
-        <Row id={list.attendanceID}>
-          <Col className="col-md-1 check" xs={1}>
-            {list.check_tutor ?
-              <IconButton aria-label="check" style={{ color: "#7b68ee" }} onClick={(ev) => { this.handleShowCheck(ev, list.check_tutor, list.attendanceID) }}>
-                <CheckCircleOutlinedIcon />
-              </IconButton> :
-              <IconButton aria-label="check" onClick={(ev) => { this.handleShowCheck(ev, list.check_tutor, list.attendanceID) }}>
-                <CheckCircleOutlinedIcon />
-              </IconButton>
-            }
-          </Col>
-          <Col md={7} xs={6}>
-            <FormControl fullWidth variant="outlined">
-              {/* <InputLabel>Note</InputLabel>
+    let lists = arrLists.map((list, index) =>
+      <div key={index}>
+        <Col md={12} xs={12}>
+          <Row id={list.attendanceID} >
+            <Col md={{ span: 1, order: 1, offset: 0 }} xs={{ span: 2, order: 2, offset: -1 }} style={{ display: "flex", flexDirection: "row" }}>
+              {list.check_tutor ?
+                <IconButton aria-label="check" style={{ color: "#7b68ee" }} onClick={(ev) => { this.handleShowCheck(ev, list.check_tutor, list.attendanceID) }}>
+                  <CheckCircleOutlinedIcon />
+                </IconButton> :
+                <IconButton aria-label="check" onClick={(ev) => { this.handleShowCheck(ev, list.check_tutor, list.attendanceID) }}>
+                  <CheckCircleOutlinedIcon />
+                </IconButton>
+              }
+            </Col>
+            <Col md={{ span: 7, order: 2, offset: 0 }} xs={{ span: 12, order: 5, offset: 0 }} style={{ display: "flex", flexDirection: "row" }}>
+              <FormControl fullWidth variant="outlined">
+                {/* <InputLabel>Note</InputLabel>
               <OutlinedInput
                 id="outlined-adornment-amount"
                 value={list.note}
                 labelWidth={60}
               /> */}
-              {list.note}
-            </FormControl>
-          </Col>
-          <Col md={2}>{list.date}
-          </Col>
-          <Col md={1}>{list.hrs + 'hrs'}
-          </Col>
-          <Col md={1}>
-            <IconButton aria-label="more-info" onClick={(ev) => { this.handleShowInfo(ev, list.attendanceID) }}>
-              <MoreHorizIcon />
-            </IconButton>
-          </Col>
-        </Row>
-      </Col>
+                {list.note}
+              </FormControl>
+            </Col>
+            <Col md={{ span: 2, order: 3, offset: 0 }} xs={{ span: 7, order: 1, offset: 0 }} style={{ display: "flex", flexDirection: "row" }}>{list.date}
+            </Col>
+            <Col md={{ span: 1, order: 4, offset: 0 }} xs={{ span: 12, order: 4, offset: 0 }} style={{ display: "flex", flexDirection: "row" }}>{list.hrs + 'hrs'}
+            </Col>
+            <Col md={{ span: 1, order: 5, offset: 0 }} xs={{ span: 2, order: 3, offset: -1 }} style={{ display: "flex", flexDirection: "row" }}>
+              <IconButton aria-label="more-info" onClick={(ev) => { this.handleShowInfo(ev, list.attendanceID) }}>
+                <MoreHorizIcon />
+              </IconButton>
+            </Col>
+          </Row>
+        </Col>
+      </div>
     )
 
     return (<>
@@ -227,36 +221,36 @@ class Attendance extends React.Component {
               </Modal.Header>
               <Modal.Body >
                 <Container>
-                  <Row>
-                    <Col xs={2} md={4}>
+                  <Row xs={12} md={12}>
+                    <Col xs={2} md={2}>
                       Date
                     </Col>
-                    <Col xs={2} md={4}>
+                    <Col xs={10} md={10}>
+                      <Form.Control type="date" name="newDate" value={this.state.newDate} onChange={this.handleChange} />
+                    </Col>
+                  </Row>
+                  <Row xs={12} md={12}>
+                    <Col xs={2} md={2}>
                       From
                     </Col>
-                    <Col xs={2} md={4}>
+                    <Col xs={10} md={10}>
+                      <Form.Control type="time" name="newStarttime" value={this.state.newStarttime} onChange={this.handleChange} />
+                    </Col>
+                  </Row>
+                  <Row xs={12} md={12}>
+                    <Col xs={2} md={2}>
                       To
                     </Col>
-                  </Row>
-                  <Row>
-                    <Col xs={2} md={4}>
-                      <Form.Control className="inputbar" type="date" name="newDate" value={this.state.newDate} onChange={this.handleChange} placeholder="" />
-                    </Col>
-                    <Col xs={2} md={4}>
-                      <Form.Control className="inputbar" type="time" name="newStarttime" value={this.state.newStarttime} onChange={this.handleChange} placeholder="" />
-                    </Col>
-                    <Col xs={2} md={4}>
-                      <Form.Control className="inputbar" type="time" name="newEndtime" value={this.state.newEndtime} onChange={this.handleChange} placeholder="" />
+                    <Col xs={10} md={10}>
+                      <Form.Control type="time" name="newEndtime" value={this.state.newEndtime} onChange={this.handleChange} />
                     </Col>
                   </Row>
-                  <Row>
-                    <Col xs={18} md={12}>
+                  <Row xs={12} md={12}>
+                    <Col xs={2} md={2}>
                       Note
                     </Col>
-                  </Row>
-                  <Row>
-                    <Col xs={18} md={12}>
-                      <Form.Control className="inputbar" type="text" name="newNote" value={this.state.newNote} onChange={this.handleChange} placeholder="Enter Note" />
+                    <Col xs={10} md={10}>
+                      <Form.Control type="text" name="newNote" value={this.state.newNote} onChange={this.handleChange} placeholder="Enter Note" />
                     </Col>
                   </Row>
                 </Container>
@@ -268,6 +262,7 @@ class Attendance extends React.Component {
                 <Button variant="primary" id="modal-button-create" onClick={this.handleClick}>Create</Button>
               </Modal.Footer>
             </Modal>
+
             <Modal
               show={showInfo}
               onHide={this.handleCloseInfo}

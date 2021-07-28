@@ -30,7 +30,9 @@ export default class HttpUtil {
                 .then(response => {
                     if (response.redirected) {
                         window.location.href = response.url;
-                    } else { response.json() }
+                    } else {
+                        return response.json()
+                    }
                 })
                 .then(result => resolve(result))
                 .catch(error => {

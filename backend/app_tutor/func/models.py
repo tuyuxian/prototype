@@ -4,6 +4,28 @@ from flask_login import UserMixin
 from app_tutor import app
 import jwt
 from time import time
+from werkzeug._compat import text_type
+
+
+class UserMixin(object):
+
+    def is_authenticated(self):
+        return True
+
+    def is_active(self):
+        return True
+
+    def is_anonymous(self):
+        return False
+
+    def get_id(self):
+        return self.email
+
+    # def get_id(self):
+    #     try:
+    #         return text_type(self.email)
+    #     except AttributeError:
+    #         raise NotImplementedError('No `id` attribute - override `get_id`')
 
 
 class Account(UserMixin, db.Model):

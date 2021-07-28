@@ -30,9 +30,10 @@ a {
   display:center;
 }
 #attendance svg{
-  display: block;
-  margin:0 auto;
-  /* color: #7b68ee; */
+  justify-content: center;
+  align-items: center;
+  margin-right: 10px;
+  /* margin:0 auto; */
 }
 
 #record{
@@ -47,7 +48,7 @@ a {
 }
 
 .modal-content {
-  width:600px; 
+  /* width:600px;  */
   border-radius:10px;
 }
 
@@ -66,7 +67,3 @@ a {
   border-color:#f0f0fc ; */
 }
 
-#note{
-  background-color: #f0f0fc;
-  margin-top: 5px;
-}

@@ -19,3 +19,4 @@ login_manager.login_view = 'login'
 login_manager.login_message = 'Please Login First.'
 
 from app_tutor.func import view  # NOQA: E402
+from app_tutor.func import admin  # NOQA: E402

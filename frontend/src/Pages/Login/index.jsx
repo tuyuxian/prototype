@@ -2,15 +2,7 @@ import React from "react";
 import { withRouter } from "react-router";
 import './index.css';
 import '../../assets/style.css';
-import {
-  Container,
-  Row,
-  Col,
-  Form,
-  Button,
-  Modal
-} from "react-bootstrap";
-//import axios from 'axios';
+import { Container, Row, Col, Form, Button, Modal } from "react-bootstrap";
 import ApiUtil from '../../Utils/ApiUtils';
 import HttpUtil from '../../Utils/HttpUtils';
 
@@ -21,10 +13,10 @@ class Login extends React.Component {
       email: '',
       password: ''
     };
-
+    // Validation
+    // const { register, handleSubmit, formState: { errors } } = useForm();
     this.handleChange = this.handleChange.bind(this);
     this.handleClick = this.handleClick.bind(this)
-
   }
 
   handleClick(event) {
@@ -47,7 +39,6 @@ class Login extends React.Component {
     const target = event.target;
     const value = target.value;
     const name = target.type;
-
     this.setState({
       [name]: value
     });
@@ -70,7 +61,15 @@ class Login extends React.Component {
                       <Col xs={9}>
                         <Form.Group controlId="formBasicEmail">
                           <Form.Label>Email</Form.Label>
-                          <Form.Control className="inputbar" type="email" value={this.state.email} onChange={this.handleChange} placeholder="Enter email" autoFocus />
+                          <Form.Control className="inputbar" type="email"
+                            value={this.state.email}
+                            // {...register("email", {
+                            //   validate: (value) => value !== "bill"
+                            // })}
+                            onChange={this.handleChange}
+                            placeholder="Enter email" autoFocus />
+
+                          {/* {errors.firstName && <p>Your name is not bill</p>} */}
                         </Form.Group>
                       </Col>
                     </Row>
