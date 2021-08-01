@@ -3,7 +3,7 @@ import secrets
 from sqlalchemy.orm import create_session
 from app_tutor.func.models import *
 from app_tutor.func.extension import db, date_calculate, hrs_calculate, get_weekday, time_type, date_type
-from flask import render_template, request, jsonify, session, flash, redirect, logging, url_for, abort
+from flask import json, render_template, request, jsonify, session, flash, redirect, logging, url_for, abort
 from werkzeug.security import generate_password_hash, check_password_hash
 from distutils.util import strtobool
 from flask_login import login_user, logout_user, login_required, current_user
@@ -66,13 +66,13 @@ def register():
                 # saving user object into data base with hashed password
                 db.session.add(new_user)
                 db.session.commit()
-                flash('You have successfully registered', 'success')
+                # flash('You have successfully registered', 'success')
                 # if registration successful, then redirecting to login Api
-                return jsonify({'status': True})
+                return jsonify(status=True)
             else:
-                return jsonify({'status': False, 'message': 'This account is already exists.'})
+                return jsonify(status=False, message='This account is already exists.')
         except:
-            return jsonify({'status': False, 'message': 'system error'})
+            return jsonify(status=False, message='System error.')
 
 
 @app.route('/Login', methods=['GET', 'POST'])
@@ -90,7 +90,7 @@ def login():
                 # if user exist in database than we will compare our database hased password and password come from login form
                 if bcrypt.check_password_hash(user_found.password, password):
                     # if password is matched, allow user to access and save email and username inside the session
-                    flash('You have successfully logged in.', "success")
+                    # flash('You have successfully logged in.', "success")
                     # session testing
                     # session.permanent -> True，30min expiration
                     login_user(user_found)
@@ -101,7 +101,6 @@ def login():
                     session['status_tutor'] = user_found.status_tutor
                     session['status_student'] = user_found.status_student
                     session['status_parents'] = user_found.status_parents
-                    session['user_status'] = 1
                     # After successful login, redirecting to select status page
                     return jsonify({
                         'status': True,
@@ -111,13 +110,11 @@ def login():
                         'status_parents': session.get('status_parents')
                     })
                 else:
-                    # if password is incorrect , redirect to login page
-                    return redirect(url_for('login'))
-                    # return jsonify(status=False)
+                    return jsonify(status=False, message='Wrong password.')
             else:
-                return jsonify({'status': False, 'message': 'User is not found.'})
+                return jsonify(status=False, message='User is not found.')
         except:
-            return jsonify({'status': False, 'message': 'system error'})
+            return jsonify(status=False, message='System error.')
 
 
 @app.route('/Logout')
@@ -391,28 +388,28 @@ def todolist_upcoming():
     # api 4.2.7
     if request.method == 'GET':
         user_status = session.get('user_status')
-        # try:
-        classID = request.args.get('classid')
-        filters_classid = {'classID': classID}
-        query_todo = Class_Time.query.filter_by(**filters_classid).all()
-        query_class_name = Class.query.filter_by(**filters_classid).first()
-        todo_lst = []
-        for item in query_todo:
-            if item.done == 0:  # 0 for upcoming ; 1 for done.
-                todo = {
-                    'classtimeID': item.classtimeID,
-                    'classid': item.classID,
-                    'date': date_type(item.date),
-                    'weekday': item.weekday,
-                    'starttime': time_type(item.starttime),
-                    'endtime': time_type(item.endtime),
-                    'lesson': item.lesson,
-                    'hw': item.hw
-                }
-                todo_lst.append(todo)
-        return render_template('todolist.html', classname=query_class_name.className, todo_item=todo_lst, user_status=user_status)
-        # except:
-        #     return jsonify(status=False, message='Get todolist upcoming failed.')
+        try:
+            classID = request.args.get('classid')
+            filters_classid = {'classID': classID}
+            query_todo = Class_Time.query.filter_by(**filters_classid).all()
+            query_class_name = Class.query.filter_by(**filters_classid).first()
+            todo_lst = []
+            for item in query_todo:
+                if item.done == 0:  # 0 for upcoming ; 1 for done.
+                    todo = {
+                        'classtimeID': item.classtimeID,
+                        'classid': item.classID,
+                        'date': date_type(item.date),
+                        'weekday': item.weekday,
+                        'starttime': time_type(item.starttime),
+                        'endtime': time_type(item.endtime),
+                        'lesson': item.lesson,
+                        'hw': item.hw
+                    }
+                    todo_lst.append(todo)
+            return render_template('todolist.html', classname=query_class_name.className, todo_item=todo_lst, user_status=user_status)
+        except:
+            return jsonify(status=False, message='Get todolist upcoming failed.')
 
     # api 4.2.2
     elif request.method == 'PUT':
@@ -932,14 +929,14 @@ def invite_login(tutor, classid, classname):
                         return jsonify(status=False, message='You need to activate student or parents status first.')
                 else:
                     # if password is in correct , redirect to login page
-                    return jsonify({'status': False, 'note': 'password is wrong'})
+                    return jsonify(status=False, note='password is wrong')
             else:
-                return jsonify({'status': False, 'note': 'User is not found.'})
+                return jsonify(status=False, note='User is not found.')
         except:
-            return jsonify({'status': False, 'note': 'system error'})
+            return jsonify(status=False, note='system error')
 
 
-@app.route('/forget', methods=['GET', 'POST'])
+@app.route('/Forget', methods=['GET', 'POST'])
 def forget_password():
     if request.method == 'GET':
         return render_template("index.html")
@@ -950,25 +947,26 @@ def forget_password():
                 return jsonify(status=False, message='User already login.')
         except KeyError:
             email = request.get_json()['email']
-            #email = request.args.get('email')
             # Check the user is in the database.
             query_user = Account.query.filter_by(email=email).first()
-            # need token here
-            token = query_user.get_reset_password_token()
-            msg_title = 'Reset Your Password'
-            msg_recipients = [query_user.email]
-            msg_body = 'Use this url to reset your password.'
+            if query_user:
+                # need token here
+                token = query_user.get_reset_password_token()
+                msg_title = 'Reset Your Password'
+                msg_recipients = [query_user.email]
+                msg_body = 'Use this url to reset your password.'
 
-            send_mail(recipients=msg_recipients,
-                      subject=msg_title,
-                      context=msg_body,
-                      template='resetmail',
-                      mailtype='.html',
-                      user=query_user.username,
-                      token=token
-                      )
-            flash('Please Check Your Email. Then Click link to Reset Password')
-            return jsonify(status=True, message='Reset mail sent.')
+                send_mail(recipients=msg_recipients,
+                          subject=msg_title,
+                          context=msg_body,
+                          template='resetmail',
+                          mailtype='.html',
+                          user=query_user.username,
+                          token=token
+                          )
+                return jsonify(status=True)
+            else:
+                return jsonify(status=False, message='User is not found.')
 
 
 def send_async_email(app, msg):
@@ -1006,10 +1004,17 @@ def reset_password():
         except KeyError:
             email = session.get('reset_user_email')
             query_user_reset_pwd = Account.query.filter_by(email=email).first()
-            newpassword = request.get_json()['newpassword']
+            data = request.get_json()
+            newpassword = data['newpassword']
+            id_confirmation = data['birthday']
             # hash
             hash_newpassword = bcrypt.generate_password_hash(newpassword)
             if query_user_reset_pwd != None:
-                query_user_reset_pwd.password = hash_newpassword
-                db.session.commit()
-            return jsonify(status=True, message='New password has been set.')
+                if date_type(query_user_reset_pwd.personal_question) == id_confirmation:
+                    query_user_reset_pwd.password = hash_newpassword
+                    db.session.commit()
+                    return jsonify(status=True)
+                else:
+                    return jsonify(status=False, message='ID confirmation failed.')
+            else:
+                return jsonify(status=False, message='System error.')

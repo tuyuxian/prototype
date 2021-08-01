@@ -10,39 +10,106 @@ class Login extends React.Component {
   constructor(props) {
     super(props)
     this.state = {
-      email: '',
-      password: ''
+      fields: {},
+      errors: {}
     };
-    // Validation
-    // const { register, handleSubmit, formState: { errors } } = useForm();
     this.handleChange = this.handleChange.bind(this);
-    this.handleClick = this.handleClick.bind(this)
+    this.handleSubmit = this.handleSubmit.bind(this)
   }
 
-  handleClick(event) {
-    var values = { email: this.state.email, password: this.state.password };
+  handleSubmit(event) {
     event.preventDefault();
-    HttpUtil.post(ApiUtil.API_Login_Post, values)
-      .then(
-        response => {
-          console.log(response['status']);
-          console.log(response['message']);
-          this.props.history.push('/Status', response) // send the email and account status T/F to front-end
-        }
-      )
-      .catch(error => {
-        //message.error(error.message);
-      });
+    if (this.validateForm()) {
+      var values = { email: this.state.fields.email, password: this.state.fields.password };
+      HttpUtil.post(ApiUtil.API_Login_Post, values)
+        .then(
+          response => {
+            if (this.validateLogin(response)) {
+              let fields = {};
+              fields["email"] = "";
+              fields["password"] = "";
+              this.setState({ fields: fields });
+              this.props.history.push('/Status', response) // send the email and account status T/F to front-end
+            }
+          }
+        )
+        .catch(error => {
+          //message.error(error.message);
+        });
+    }
   }
 
   handleChange(event) {
-    const target = event.target;
-    const value = target.value;
-    const name = target.type;
+    let fields = this.state.fields;
+    fields[event.target.type] = event.target.value;
     this.setState({
-      [name]: value
+      fields
     });
   }
+
+  validateForm() {
+
+    let fields = this.state.fields;
+    let errors = {};
+    let formIsValid = true;
+
+    if (!fields["email"]) {
+      formIsValid = false;
+      errors["email"] = "*Please enter your email.";
+    }
+
+    if (typeof fields["email"] !== "undefined") {
+      //regular expression for email validation
+      var pattern = new RegExp(/^(("[\w-\s]+")|([\w-]+(?:\.[\w-]+)*)|("[\w-\s]+")([\w-]+(?:\.[\w-]+)*))(@((?:[\w-]+\.)*\w[\w-]{0,66})\.([a-z]{2,6}(?:\.[a-z]{2})?)$)|(@\[?((25[0-5]\.|2[0-4][0-9]\.|1[0-9]{2}\.|[0-9]{1,2}\.))((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[0-9]{1,2})\.){2}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[0-9]{1,2})\]?$)/i);
+      if (!pattern.test(fields["email"])) {
+        formIsValid = false;
+        errors["email"] = "*Please enter valid email.";
+      }
+    }
+
+    if (!fields["password"]) {
+      formIsValid = false;
+      errors["password"] = "*Please enter your password.";
+    }
+
+    if (typeof fields["password"] !== "undefined") {
+      if (!fields["password"].match(/^(?=.*\d)(?=.*[a-z]).{6,20}$/)) {
+        formIsValid = false;
+        errors["password"] = "*Please enter valid password.";
+      }
+    }
+    this.setState({
+      errors: errors
+    });
+    return formIsValid;
+  }
+
+  validateLogin(response) {
+    // let response = response;
+    let errors = {};
+    let loginIsValid = true;
+    if (response["status"] === true) {
+      return loginIsValid;
+    } else {
+      if (response["message"] === "Wrong password.") {
+        loginIsValid = false;
+        errors["password"] = "*Wrong password.";
+      }
+      if (response["message"] === "User is not found.") {
+        loginIsValid = false;
+        errors["email"] = "*User is not found.";
+      }
+      if (response["message"] === "System error.") {
+        loginIsValid = false;
+        errors["email"] = "*Login failed.";
+      }
+      this.setState({
+        errors: errors
+      });
+      return loginIsValid;
+    }
+  }
+
   render() {
     return (
       <>
@@ -62,15 +129,11 @@ class Login extends React.Component {
                         <Form.Group controlId="formBasicEmail">
                           <Form.Label>Email</Form.Label>
                           <Form.Control className="inputbar" type="email"
-                            value={this.state.email}
-                            // {...register("email", {
-                            //   validate: (value) => value !== "bill"
-                            // })}
+                            value={this.state.fields.email}
                             onChange={this.handleChange}
                             placeholder="Enter email" autoFocus />
-
-                          {/* {errors.firstName && <p>Your name is not bill</p>} */}
                         </Form.Group>
+                        <div className="errorMsg">{this.state.errors.email}</div>
                       </Col>
                     </Row>
 
@@ -78,8 +141,12 @@ class Login extends React.Component {
                       <Col xs={9}>
                         <Form.Group className="mb-3" controlId="formBasicPassword">
                           <Form.Label>Password</Form.Label>
-                          <Form.Control className="inputbar" type="password" value={this.state.password} onChange={this.handleChange} placeholder="Password" />
+                          <Form.Control className="inputbar" type="password"
+                            value={this.state.fields.password}
+                            onChange={this.handleChange}
+                            placeholder="Password" />
                         </Form.Group>
+                        <div className="errorMsg">{this.state.errors.password}</div>
                       </Col>
                     </Row>
 
@@ -93,7 +160,7 @@ class Login extends React.Component {
                         {/* <Button className="btn-submit" type="submit">
                           Log In
                         </Button> */}
-                        <Button className="btn-submit" onClick={this.handleClick} >
+                        <Button className="btn-submit" onClick={this.handleSubmit} >
                           Log In
                         </Button>
                       </Col>
