@@ -23,7 +23,7 @@ class Reset extends React.Component {
       resetpwd(values)
         .then(
           response => {
-            if (this.validateForget(response)) {
+            if (this.validateForget(response.data)) {
               let fields = {};
               fields["password"] = "";
               fields["birthday"] = "";

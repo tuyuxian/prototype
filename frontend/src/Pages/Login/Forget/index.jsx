@@ -23,7 +23,7 @@ class Forget extends React.Component {
       forgetpwd(values)
         .then(
           response => {
-            if (this.validateForget(response)) {
+            if (this.validateForget(response.data)) {
               let fields = {};
               fields["email"] = "";
               this.setState({ fields: fields });

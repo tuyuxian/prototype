@@ -39,7 +39,7 @@ class Register extends React.Component {
       register(values)
         .then(
           response => {
-            if (this.validateRegister(response)) {
+            if (this.validateRegister(response.data)) {
               let fields = {};
               fields["username"] = "";
               fields["email"] = "";

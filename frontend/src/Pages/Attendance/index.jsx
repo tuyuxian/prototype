@@ -81,11 +81,11 @@ class Attendance extends React.Component {
       .then(
         response => {
           this.setState({
-            classname: response['classname'],
-            classID: response['classID'],
-            attendance_item: response['attendance_item']
+            classname: response.data['classname'],
+            classID: response.data['classID'],
+            attendance_item: response.data['attendance_item']
           });
-          console.log(response);
+          console.log(response.data);
         }
       )
       .catch(error => {

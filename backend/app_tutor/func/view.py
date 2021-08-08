@@ -5,7 +5,6 @@ from sqlalchemy.orm import create_session
 from app_tutor.func.models import *
 from app_tutor.func.extension import db, date_calculate, hrs_calculate, get_weekday, time_type, date_type
 from flask import json, render_template, request, jsonify, session, flash, redirect, logging, url_for, abort, send_from_directory
-from distutils.util import strtobool
 from flask_login import login_user, logout_user, login_required, current_user
 from flask_mail import Message
 from threading import Thread
@@ -760,77 +759,76 @@ def myprofile_btn():
     # api 4.6.1 myprofile btn
     try:
         email = session.get('email')
+        email = 'test1234@gmail.com'
         filters_account = {'email': email}
         query_account = Account.query.filter_by(**filters_account).first()
-        account_lst = [{"username": query_account.username, "oldpassword": query_account.password, "phone": query_account.phone,
-                        "status_tutor": query_account.status_tutor, "status_student": query_account.status_student, "status_parents": query_account.status_parents}]
-        return jsonify(status=True, account_lst=account_lst)
+        account_info = {"username": query_account.username, "oldpassword": query_account.password, "phone": query_account.phone,
+                        "status_tutor": query_account.status_tutor, "status_student": query_account.status_student, "status_parents": query_account.status_parents}
+        return jsonify(status=True, account_info=account_info)
     except:
-        return jsonify(status=False, message='Get accoint info failed.')
+        return jsonify(status=False, message='Get account info failed.')
 
 
 @app.route('/myprofile/modify', methods=['PUT'])
 # pwd的部分還要修改(若儲存時就會是hash_pwd 則新輸入的不用hash就拿去比對，新存的也要為hash過的密碼)
 def myprofile_confirm():
     # api 4.6.2 myprofile_confirm
-    try:
-        email = session.get('email')  # get paremeters from front-end
-        filters_account = {'email': email}
-        query_account_update = Account.query.filter_by(
-            **filters_account).first()
-        data = request.get_json()
-        oldpassword = data['oldpassword']
-        newpassword = data['newpassword']
+    # try:
+    email = session.get('email')  # get paremeters from front-end
+    email = 'test1234@gmail.com'
+    filters_account = {'email': email}
+    query_account_update = Account.query.filter_by(
+        **filters_account).first()
+    data = request.get_json()
 
-        if query_account_update != None:
+    if query_account_update != None:
             # Update account info into Account table.
-            DB_pwd = query_account_update.password  # have hashed
-
+        DB_pwd = query_account_update.password  # have hashed
+        if 'oldpassword' in data:
+            oldpassword = data['oldpassword']
             if not bcrypt.check_password_hash(DB_pwd, oldpassword):
-                return jsonify(status=False, message='old password is Wrong')
+                return jsonify(status=False, message='Old password is wrong.')
             else:
-                if len(newpassword) == 0:  # don't update password
+                if 'newpassword' not in data:  # don't update password
                     pass
                 else:
+                    newpassword = data['newpassword']
                     # hash
                     hash_newpassword = bcrypt.generate_password_hash(
                         newpassword)
                     if bcrypt.check_password_hash(hash_newpassword, oldpassword):
-                        return jsonify(status=False, message='new password is same as the old one')
+                        return jsonify(status=False, message='New password is same as the old one.')
                     else:
                         query_account_update.password = hash_newpassword
 
-            # Update other info
-            if len(data['new_username']) != 0:
-                query_account_update.username = data['new_username']
-            if len(data['phone']) != 0:
-                query_account_update.phone = data['phone']
-            # from front_end are all String Type, so change to Boolean Type here
-            # front-end will limit to type input:0, 1
-            new_status_tutor = bool(
-                strtobool(data['status_tutor']))
-            new_status_student = bool(
-                strtobool(data['status_student']))
-            new_status_parents = bool(
-                strtobool(data['status_parents']))
-            new_status_lst = [new_status_tutor,
-                              new_status_student, new_status_parents]
-            for i in range(len(new_status_lst)):
-                if new_status_lst[i] == 0:  # avoid deleting status
-                    pass
-                else:
-                    if i == 0:
-                        query_account_update.status_tutor = new_status_tutor
-                    if i == 1:
-                        query_account_update.status_student = new_status_student
-                    if i == 2:
-                        query_account_update.status_parents = new_status_parents
-            db.session.commit()
-            return jsonify(status=True)
-        else:
-            return jsonify(status=False, message='query_account is None.')
-    except:
-        return jsonify(status=False, message='Get account info failed.')
+        # Update other info
+        if 'username' in data:
+            query_account_update.username = data['username']
+        if 'phone' in data:
+            query_account_update.phone = data['phone']
+        # from front_end are all String Type, so change to Boolean Type here
+        # front-end will limit to type input:0, 1
+        new_status_tutor = 1 if data['status_tutor'] else 0
+        new_status_student = 1 if data['status_student'] else 0
+        new_status_parents = 1 if data['status_parents'] else 0
+        new_status_lst = [new_status_tutor,
+                          new_status_student, new_status_parents]
+        for i in range(len(new_status_lst)):
+            if new_status_lst[i] == 0:  # avoid deleting status
+                pass
+            else:
+                if i == 0:
+                    query_account_update.status_tutor = new_status_tutor
+                if i == 1:
+                    query_account_update.status_student = new_status_student
+                if i == 2:
+                    query_account_update.status_parents = new_status_parents
+        db.session.commit()
+        return jsonify(status=True)
+    else:
+        return jsonify(status=False, message='query_account is None.')
+    # except:
+    #     return jsonify(status=False, message='Update account info failed.')
 
 
 # 2021-07-10

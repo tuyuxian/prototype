@@ -1,22 +1,17 @@
 import React from "react";
 import { withRouter } from "react-router";
 import './index.css'
-import {
-Nav,
-Container,
-Row,
-Col
-} from "react-bootstrap";
+import { Nav, Container, Row, Col } from "react-bootstrap";
 import { BsBook, BsQuestion } from 'react-icons/bs';
 import { AiOutlineBars, AiOutlineCheck } from 'react-icons/ai';
 import { RiBarChart2Fill } from 'react-icons/ri';
-import Class from '../Class/index';
+// import Class from '../Class/index';
 import Info from '../Info/index';
 
 class Profile extends React.Component {
   constructor() {
-    super(); 
-    this.state = { 
+    super();
+    this.state = {
       showNavigator: true,
       navigator: {
         showClass: false,
@@ -31,14 +26,14 @@ class Profile extends React.Component {
   }
 
   async sidenavClick(location, target) {
-    const prevState = {...this.state};
+    const prevState = { ...this.state };
     const toggle = !prevState[location][target];
     Object.keys(prevState[location]).forEach(key => prevState[location][key] = false);
     prevState[location][target] = toggle;
     this.setState(prevState);
   }
-  
-  render () {
+
+  render() {
     return (
       <>
         <Container fluid>
@@ -46,72 +41,72 @@ class Profile extends React.Component {
             <Col xs={3} id="sidebar-wrapper">
               <Nav className="col-sm-1 d-block sidebar">
                 <div className="sidebar-sticky"></div>
-                  <Nav.Item className="ml-2">
-                    <Nav.Link onClick={() => this.sidenavClick("navigator", "showClass")}> <BsBook /> </Nav.Link>
-                  </Nav.Item>
-                  <Nav.Item className="ml-2">
-                    <Nav.Link onClick={() => this.sidenavClick("navigator", "showTodo")}> <AiOutlineBars /> </Nav.Link>
-                  </Nav.Item>
-                  <Nav.Item className="ml-2">
-                    <Nav.Link onClick={() => this.sidenavClick("navigator", "showAttend")}> <AiOutlineCheck /> </Nav.Link>
-                  </Nav.Item>
-                  <Nav.Item className="ml-2">
-                    <Nav.Link onClick={() => this.sidenavClick("navigator", "showQA")}> <BsQuestion /> </Nav.Link>
-                  </Nav.Item>
-                  <Nav.Item className="ml-2">
-                    <Nav.Link onClick={() => this.sidenavClick("navigator", "showInfo")}> <RiBarChart2Fill /> </Nav.Link>
-                  </Nav.Item>
+                <Nav.Item className="ml-2">
+                  <Nav.Link onClick={() => this.sidenavClick("navigator", "showClass")}> <BsBook /> </Nav.Link>
+                </Nav.Item>
+                <Nav.Item className="ml-2">
+                  <Nav.Link onClick={() => this.sidenavClick("navigator", "showTodo")}> <AiOutlineBars /> </Nav.Link>
+                </Nav.Item>
+                <Nav.Item className="ml-2">
+                  <Nav.Link onClick={() => this.sidenavClick("navigator", "showAttend")}> <AiOutlineCheck /> </Nav.Link>
+                </Nav.Item>
+                <Nav.Item className="ml-2">
+                  <Nav.Link onClick={() => this.sidenavClick("navigator", "showQA")}> <BsQuestion /> </Nav.Link>
+                </Nav.Item>
+                <Nav.Item className="ml-2">
+                  <Nav.Link onClick={() => this.sidenavClick("navigator", "showInfo")}> <RiBarChart2Fill /> </Nav.Link>
+                </Nav.Item>
               </Nav>
-              { this.state.navigator.showClass &&
+              {this.state.navigator.showClass &&
                 <Nav className="d-block sidebar secondbar">
                   <div className="secondbar-sticky"></div>
-                    <Nav.Item className="ml-md-3 ml-5">
-                      <Nav.Link className="secondnav-title" onClick={() => this.sidenavClick("navigator", "showClass")}> Class </Nav.Link>
-                    </Nav.Item>
+                  <Nav.Item className="ml-md-3 ml-5">
+                    <Nav.Link className="secondnav-title" onClick={() => this.sidenavClick("navigator", "showClass")}> Class </Nav.Link>
+                  </Nav.Item>
                 </Nav>
               }
-              { this.state.navigator.showTodo &&
+              {this.state.navigator.showTodo &&
                 <Nav className="d-block sidebar secondbar">
                   <div className="secondbar-sticky"></div>
-                   
+
                 </Nav>
               }
-              { this.state.navigator.showAttend &&
+              {this.state.navigator.showAttend &&
                 <Nav className="d-block sidebar secondbar">
                   <div className="secondbar-sticky"></div>
-                   
+
                 </Nav>
               }
-              { this.state.navigator.showQA &&
+              {this.state.navigator.showQA &&
                 <Nav className="d-block sidebar secondbar">
                   <div className="secondbar-sticky"></div>
-                
+
                 </Nav>
               }
-              { this.state.navigator.showInfo &&
+              {this.state.navigator.showInfo &&
                 <Nav className="d-block sidebar secondbar">
                   <div className="secondbar-sticky"></div>
-                    <Nav.Item className="ml-md-3 ml-5">
-                      <Nav.Link className="secondnav-title"> Profile </Nav.Link>
-                    </Nav.Item>
-                    <Nav.Item className="ml-5">
-                      <Nav.Link className="secondnav-link" onClick={() => this.sidenavClick("navigator", "showInfo")}> Account </Nav.Link>
-                    </Nav.Item>
-                    <Nav.Item className="ml-5">
-                      <Nav.Link className="secondnav-link" href="#"> Profile Pic </Nav.Link>
-                    </Nav.Item>
+                  <Nav.Item className="ml-md-3 ml-5">
+                    <Nav.Link className="secondnav-title"> Profile </Nav.Link>
+                  </Nav.Item>
+                  <Nav.Item className="ml-5">
+                    <Nav.Link className="secondnav-link" onClick={() => this.sidenavClick("navigator", "showInfo")}> Account </Nav.Link>
+                  </Nav.Item>
+                  <Nav.Item className="ml-5">
+                    <Nav.Link className="secondnav-link" href="#"> Profile Pic </Nav.Link>
+                  </Nav.Item>
                 </Nav>
               }
             </Col>
             <Col xs={9}>
-              { this.state.navigator.showClass &&
+              {this.state.navigator.showClass &&
                 <Col xs={12} md={6}>
-                  <Class/>
+                  {/* <Class /> */}
                 </Col>
               }
-              { this.state.navigator.showInfo &&
+              {this.state.navigator.showInfo &&
                 <Col xs={12}>
-                  <Info/>
+                  <Info />
                 </Col>
               }
             </Col>

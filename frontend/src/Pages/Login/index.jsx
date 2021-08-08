@@ -23,12 +23,12 @@ class Login extends React.Component {
       login(values)
         .then(
           response => {
-            if (this.validateLogin(response)) {
+            if (this.validateLogin(response.data)) {
               let fields = {};
               fields["email"] = "";
               fields["password"] = "";
               this.setState({ fields: fields });
-              this.props.history.push('/Status', response) // send the email and account status T/F to front-end
+              this.props.history.push('/Status', response.data) // send the email and account status T/F to front-end
             }
           }
         )
