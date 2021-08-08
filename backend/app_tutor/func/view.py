@@ -1,10 +1,10 @@
 import uuid
 import secrets
+import os
 from sqlalchemy.orm import create_session
 from app_tutor.func.models import *
 from app_tutor.func.extension import db, date_calculate, hrs_calculate, get_weekday, time_type, date_type
-from flask import json, render_template, request, jsonify, session, flash, redirect, logging, url_for, abort
-from werkzeug.security import generate_password_hash, check_password_hash
+from flask import json, render_template, request, jsonify, session, flash, redirect, logging, url_for, abort, send_from_directory
 from distutils.util import strtobool
 from flask_login import login_user, logout_user, login_required, current_user
 from flask_mail import Message
@@ -24,6 +24,10 @@ def get_user(email):
 def index():
     return render_template('index.html')
 
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 # @app.errorhandler(404)
 # def not_found(e):
@@ -277,8 +281,9 @@ def add_member():
     # Fix adding invalid user issue. (2021-07-13)
     elif request.method == 'POST':
         try:
-            classID = request.args.get('classid')
-            attenderemail = request.args.get('attenderemail').split(',')
+            data = request.get_json()
+            classID = data['classid']
+            attenderemail = data['attenderemail'].split(',')
             filters_attenderemail = {'classID': classID}
             query_attenderemail = [item.attenderEmail for item in Class_Attender.query.filter_by(
                 **filters_attenderemail).all()]
@@ -337,7 +342,7 @@ def delete_class():
 def share_url():
     # api 4.1.5
     try:
-        classID = request.args.get('classid')
+        classID = request.get_json()['classid']
         filters_share_url = {'classID': classID}
         url = Class.query.filter_by(**filters_share_url).first()
         return jsonify(status=True, url=url.url)
@@ -389,7 +394,7 @@ def todolist_upcoming():
     if request.method == 'GET':
         user_status = session.get('user_status')
         try:
-            classID = request.args.get('classid')
+            classID = request.get_json()['classid']
             filters_classid = {'classID': classID}
             query_todo = Class_Time.query.filter_by(**filters_classid).all()
             query_class_name = Class.query.filter_by(**filters_classid).first()
@@ -414,13 +419,14 @@ def todolist_upcoming():
     # api 4.2.2
     elif request.method == 'PUT':
         try:
-            classtimeID = request.args.get('classtimeid')
-            classID = request.args.get('classid')
-            date = request.args.get('date')
-            starttime = request.args.get('starttime')
-            endtime = request.args.get('endtime')
-            lesson = request.args.get('lesson')
-            hw = request.args.get('hw')
+            data = request.get_json()
+            classtimeID = data['classtimeid']
+            classID = data['classid']
+            date = data['date']
+            starttime = data['starttime']
+            endtime = data['endtime']
+            lesson = data['lesson']
+            hw = data['hw']
             if hrs_calculate(starttime, endtime) <= 0:
                 return jsonify(status=False, message='Time input error.')
             # Update new info into Class_Time table.
@@ -448,12 +454,13 @@ def todolist_upcoming():
     # api 4.2.3
     elif request.method == 'POST':
         try:
-            classID = request.args.get('classid')
-            date = request.args.get('date')
-            starttime = request.args.get('starttime')
-            endtime = request.args.get('endtime')
-            lesson = request.args.get('lesson')
-            hw = request.args.get('hw')
+            data = request.get_json()
+            classID = data['classid']
+            date = data['date']
+            starttime = data['starttime']
+            endtime = data['endtime']
+            lesson = data['lesson']
+            hw = data['hw']
             if hrs_calculate(starttime, endtime) <= 0:
                 return jsonify(status=False, message='Time input error.')
             # Insert new todolist into Class_Time table.
@@ -539,7 +546,7 @@ def finished_todolist():
 def todolist_done():
     # api 4.2.8
     try:
-        classID = request.args.get('classid')
+        classID = request.get_json()['classid']
         filters_classid = {'classID': classID}
         query_todo = Class_Time.query.filter_by(**filters_classid).all()
         query_class_name = Class.query.filter_by(**filters_classid).first()
@@ -566,7 +573,7 @@ def todolist_done():
 def recover_todolist():
     # api 4.2.6
     try:
-        origin_classtimeID = request.args.get('classtimeid')
+        origin_classtimeID = request.get_json()['classtimeid']
         # Recover the data to Class_Time table first.
         filters_todolist_undo = {'classtimeID': origin_classtimeID}
         query_todolist_undo = Class_Time.query.filter_by(
@@ -695,9 +702,9 @@ def qa_btn(classID):
             if query_class == None:  # check whether this classID existed, if not return status=False
                 return jsonify(status=False, message='classID is not found')
             else:
-                qa_data = [[{'classname': query_class.className}], [{'qaID': item.qaID, 'classid': item.classID, 'date': item.date,
-                                                                     'question': item.question, 'reply': item.reply} for item in query_qa]]
-                return jsonify(qa_data)
+                qa_data = [{'qaID': item.qaID, 'classid': item.classID, 'date': date_type(
+                    item.date), 'question': item.question, 'reply': item.reply} for item in query_qa]
+                return jsonify(status=True, classname=query_class.className, qa_data=qa_data)
         except:
             return jsonify(status=False, message='Get QA info failed.')
 
@@ -708,8 +715,7 @@ def question_btn(classID):
     if request.method == 'POST':
         try:
             # get the data from front-end, qaID is autoincrement
-            question = request.args.get('question')
-
+            question = request.get_json()['question']
             filters_classid = {'classID': classID}
             query_qa = Class.query.filter_by(**filters_classid).all()
             if len(query_qa) == 0:
@@ -723,7 +729,7 @@ def question_btn(classID):
                 db.session.commit()
                 return jsonify(status=True)
         except:
-            return jsonify(status=False, message='Error, can\'t add the question.')
+            return jsonify(status=False, message='Add question failed.')
 
 
 @app.route('/QA/reply/<classID>', methods=['POST'])
@@ -732,8 +738,9 @@ def reply_btn(classID):
     if request.method == 'POST':
         try:
             # get the data from front-end
-            qaID = request.args.get('qaID')
-            reply = request.args.get('reply')
+            data = request.get_json()
+            qaID = data['qaID']
+            reply = data['reply']
             filters_classid = {'classID': classID, 'qaID': int(qaID)}
             query_qa = QA.query.filter_by(**filters_classid).first()
 
@@ -771,9 +778,9 @@ def myprofile_confirm():
         filters_account = {'email': email}
         query_account_update = Account.query.filter_by(
             **filters_account).first()
-
-        oldpassword = request.args.get('oldpassword')
-        newpassword = request.args.get('newpassword')
+        data = request.get_json()
+        oldpassword = data['oldpassword']
+        newpassword = data['newpassword']
 
         if query_account_update != None:
             # Update account info into Account table.
@@ -794,20 +801,18 @@ def myprofile_confirm():
                         query_account_update.password = hash_newpassword
 
             # Update other info
-            if len(request.args.get('new_username')) != 0:
-                query_account_update.username = request.args.get(
-                    'new_username')
-            if len(request.args.get('phone')) != 0:
-                query_account_update.phone = request.args.get('phone')
-
+            if len(data['new_username']) != 0:
+                query_account_update.username = data['new_username']
+            if len(data['phone']) != 0:
+                query_account_update.phone = data['phone']
             # from front_end are all String Type, so change to Boolean Type here
             # front-end will limit to type input:0, 1
             new_status_tutor = bool(
-                strtobool(request.args.get('status_tutor')))
+                strtobool(data['status_tutor']))
             new_status_student = bool(
-                strtobool(request.args.get('status_student')))
+                strtobool(data['status_student']))
             new_status_parents = bool(
-                strtobool(request.args.get('status_parents')))
+                strtobool(data['status_parents']))
             new_status_lst = [new_status_tutor,
                               new_status_student, new_status_parents]
             for i in range(len(new_status_lst)):
@@ -899,8 +904,9 @@ def invite_login(tutor, classid, classname):
         return 'Login Please'
     # api 4.1.10
     elif request.method == 'POST':
-        email = request.args.get('email')
-        password = request.args.get('password')
+        data = request.get_json()
+        email = data['email']
+        password = data['password']
         user_found = Account.query.filter_by(email=email).first()
         try:
             if user_found:
