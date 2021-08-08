@@ -1,5 +1,5 @@
 import React from "react";
-import SideNav from "../../Components/SideNav"
+// import SideNav from "../../Components/SideNav"
 import { withRouter } from "react-router";
 import CheckCircleOutlinedIcon from '@material-ui/icons/CheckCircleOutlined';
 import MoreHorizIcon from '@material-ui/icons/MoreHoriz';
@@ -7,8 +7,7 @@ import { IconButton, OutlinedInput, FormControl, InputLabel } from '@material-ui
 import './index.css';
 import '../../assets/style.css';
 import { Container, Row, Col, Form, Button, Modal } from "react-bootstrap";
-import ApiUtil from '../../Utils/ApiUtils';
-import HttpUtil from '../../Utils/HttpUtils';
+import { checkNote, updateNote, getAttendance, newAttendance } from '../../Api/attendance';
 
 class Attendance extends React.Component {
   constructor(props) {
@@ -78,7 +77,7 @@ class Attendance extends React.Component {
 
 
   componentDidMount() {
-    HttpUtil.get(ApiUtil.API_Attendance_Get)
+    getAttendance()
       .then(
         response => {
           this.setState({
@@ -105,7 +104,7 @@ class Attendance extends React.Component {
       note: this.state.newNote
     };
     event.preventDefault();
-    HttpUtil.post(ApiUtil.API_newAttendance_Post, values)
+    newAttendance(values)
       .then(
         response => {
           console.log(response);
@@ -123,7 +122,7 @@ class Attendance extends React.Component {
       note: this.state.updateNote
     };
     event.preventDefault();
-    HttpUtil.put(ApiUtil.API_updateAttendanceNote_Put, values)
+    updateNote(values)
       .then(
         response => {
           console.log(response);
@@ -143,7 +142,7 @@ class Attendance extends React.Component {
       check_parents: false
     };
     event.preventDefault();
-    HttpUtil.put(ApiUtil.API_updateAttendanceCheck_Put, values)
+    checkNote(values)
       .then(
         response => {
           console.log(response);
@@ -201,7 +200,7 @@ class Attendance extends React.Component {
       <Container fluid>
         <Row>
           <Col xs={2} id="sidebar-wrapper">
-            <SideNav />
+            {/* <SideNav /> */}
           </Col>
           <Col xs={10} id="page-content-wrapper">
             <h1 class='Top'> {classname} </h1>
