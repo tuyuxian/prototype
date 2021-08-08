@@ -3,8 +3,7 @@ import { withRouter } from "react-router";
 import './index.css';
 import '../../assets/style.css';
 import { Container, Row, Col, Form, Button, Modal } from "react-bootstrap";
-import ApiUtil from '../../Utils/ApiUtils';
-import HttpUtil from '../../Utils/HttpUtils';
+import { login } from '../../Api/login';
 
 class Login extends React.Component {
   constructor(props) {
@@ -21,7 +20,7 @@ class Login extends React.Component {
     event.preventDefault();
     if (this.validateForm()) {
       var values = { email: this.state.fields.email, password: this.state.fields.password };
-      HttpUtil.post(ApiUtil.API_Login_Post, values)
+      login(values)
         .then(
           response => {
             if (this.validateLogin(response)) {
@@ -113,7 +112,7 @@ class Login extends React.Component {
   render() {
     return (
       <>
-        <div class="main">
+        <div className="main">
           <Container fluid>
             <div className="login-form">
               <Modal.Dialog size="lg" centered>

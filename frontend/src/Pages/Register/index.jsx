@@ -3,8 +3,7 @@ import { withRouter } from "react-router";
 import './index.css';
 import '../../assets/style.css';
 import { Container, Row, Col, Form, Button, Modal } from "react-bootstrap";
-import ApiUtil from '../../Utils/ApiUtils';
-import HttpUtil from '../../Utils/HttpUtils';
+import { register } from '../../Api/register';
 
 
 class Register extends React.Component {
@@ -37,7 +36,7 @@ class Register extends React.Component {
         status_student: this.state.fields.student,
         status_parents: this.state.fields.parents
       };
-      HttpUtil.post(ApiUtil.API_Register_Post, values)
+      register(values)
         .then(
           response => {
             if (this.validateRegister(response)) {
@@ -152,7 +151,7 @@ class Register extends React.Component {
   render() {
     return (
       <>
-        <div class="main">
+        <div className="main">
           <Container fluid>
             <div className="register-form">
               <Modal.Dialog size="lg" centered>

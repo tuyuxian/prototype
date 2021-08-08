@@ -1,6 +1,7 @@
 import React from "react";
 import { withRouter } from "react-router";
 import "../assets/style.css";
+import logo from '../assets/logo.png';
 import {useLocation} from 'react-router-dom';
 import {
 Navbar, 
@@ -14,10 +15,14 @@ const TopNav = () => {
   
   return (
     <>
-      <Navbar className="nav-main" collapseOnSelect fixed="Top" expand="sm">
+      <Navbar className="nav-main" collapseOnSelect>
         <Container fluid>
           <Navbar.Brand href="/">
-            <Navbar.Text className="logo">ICON</Navbar.Text>
+            <img
+              src={logo}
+              className="d-inline-block align-top logo-brand"
+              alt="logo"
+            />
           </Navbar.Brand>
           <Navbar.Toggle aria-controls="responsive-navbar-nav"/>
           <Navbar.Collapse id="responsive-navbar-nav" className="justify-content-end">
@@ -25,16 +30,16 @@ const TopNav = () => {
               { location === "/" &&
                 <Nav.Link className="mr-2 ml-1" href="#"> About </Nav.Link>
               }
-              { (location === "/" || location === "/Register") &&
+              { (location === "/" || location === "/Register" || location === "/register") &&
                 <Button className="btn-nav mx-1 my-1" href="/Login">Login</Button>
               }
-              { (location === "/" || location === "/Login") &&
+              { (location === "/" || location === "/Login" || location === "/login") &&
                 <Button className="btn-nav mx-1 my-1" href="/Register">Sign Up</Button>
               }
-              { (location.startsWith("/Profile") || location.startsWith("/Edit")) &&
+              { (location.startsWith("/Profile") || location.startsWith("/profile") || location.startsWith("/Edit") || location.startsWith("/edit")) &&
                 <Button className="btn-nav mx-1 my-1" href="/Status">Change</Button>
               }
-              { (location.startsWith("/Profile") || location.startsWith("/Edit")) &&
+              { (location.startsWith("/Profile") || location.startsWith("/profile") || location.startsWith("/Edit") || location.startsWith("/edit")) &&
                 <Button className="btn-nav mx-1 my-1" href="/">Logout</Button>
               }
             </Nav>

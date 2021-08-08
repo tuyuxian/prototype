@@ -2,6 +2,10 @@
   background-color: #fafbfc;
 }
 
+.logo-brand {
+  width: 10vh;
+}
+
 .logo {
   font-size: 40px;
   font-weight: bold;
@@ -10,7 +14,7 @@
 .btn-nav {
   font-size: 90%;
   color: #7b68ee;
-  width: 6em;
+  width: 5.8em;
   background-color: transparent;
   border-color: #7b68ee;
   border-radius: .5em;
@@ -25,6 +29,11 @@
 
 .nav-main {
   background-color: #fafbfc;
+  position: sticky !important;
+}
+
+.nav-collapse {
+  align-self: flex-end!important;
 }
 
 .btn-submit {
