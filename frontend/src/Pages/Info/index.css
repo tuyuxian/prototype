@@ -1,0 +1,20 @@
+a {
+  font-size: 20px;
+  font-weight: 300;
+  color: #7b68ee;
+}
+
+.banner {
+  font-size: 60px;
+  font-weight: bold;
+  margin-bottom: 5vh;
+}
+
+.btn-confirm {
+  font-size: 90%;
+  color: white;
+  width: 5.8em;
+  background-color: #7b68ee;
+  border-color: #7b68ee;
+  border-radius: .5em;
+}

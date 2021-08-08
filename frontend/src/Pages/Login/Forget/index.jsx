@@ -3,8 +3,7 @@ import { withRouter } from "react-router";
 import '../index.css';
 import '../../../assets/style.css';
 import { Container, Row, Col, Form, Button, Modal } from "react-bootstrap";
-import ApiUtil from '../../../Utils/ApiUtils';
-import HttpUtil from '../../../Utils/HttpUtils';
+import { forgetpwd } from "../../../Api/login";
 
 class Forget extends React.Component {
   constructor(props) {
@@ -21,7 +20,7 @@ class Forget extends React.Component {
     event.preventDefault();
     if (this.validateForm()) {
       var values = { email: this.state.fields.email };
-      HttpUtil.post(ApiUtil.API_ForgetPassword_Post, values)
+      forgetpwd(values)
         .then(
           response => {
             if (this.validateForget(response)) {

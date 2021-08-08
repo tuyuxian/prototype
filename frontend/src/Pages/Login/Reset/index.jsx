@@ -3,8 +3,7 @@ import { withRouter } from "react-router";
 import '../index.css';
 import '../../../assets/style.css';
 import { Container, Row, Col, Form, Button, Modal } from "react-bootstrap";
-import ApiUtil from '../../../Utils/ApiUtils';
-import HttpUtil from '../../../Utils/HttpUtils';
+import { resetpwd } from '../../../Api/login';
 
 class Reset extends React.Component {
   constructor(props) {
@@ -21,7 +20,7 @@ class Reset extends React.Component {
     event.preventDefault();
     if (this.validateForm()) {
       var values = { newpassword: this.state.fields.password, birthday: this.state.fields.birthday };
-      HttpUtil.put(ApiUtil.API_ResetPassword_Post, values)
+      resetpwd(values)
         .then(
           response => {
             if (this.validateForget(response)) {
