@@ -3,14 +3,14 @@ import { BrowserRouter, Switch, Route } from 'react-router-dom'
 
 import TopNav from './Components/TopNav'
 import Home from './Pages/Home'
-import Login from './Pages/Login'
-import Register from './Pages/Register'
-import Forget from './Pages/Login/Forget'
-import Reset from './Pages/Login/Reset'
+import Login from './Pages/Login/loginPage'
+import Register from './Pages/Register/registerPage'
+import Forget from './Pages/Login/Forget/forgetPage'
+import Reset from './Pages/Login/Reset/resetPage'
 import Profile from './Pages/Profile'
 import Status from './Pages/Profile/Status'
 import Edit from './Pages/Edit'
-import Attendance from './Pages/Attendance'
+import Attendance from './Pages/Attendance/attendancePage'
 
 const Router = () => (
   <BrowserRouter>

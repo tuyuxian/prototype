@@ -1,0 +1,23 @@
+a {
+  font-size: 20px;
+  font-weight: 300;
+  color: #7b68ee;
+}
+
+.register-form {
+  margin-top: 50px;
+}
+
+.banner {
+  font-size: 60px;
+  font-weight: bold;
+  margin-bottom: 5vh;
+}
+
+.check-box.form-group{
+  text-align: center;
+}
+
+.form-check.form-check-inline{
+  margin-left: 0.8em;
+}

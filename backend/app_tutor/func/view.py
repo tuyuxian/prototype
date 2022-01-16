@@ -12,6 +12,22 @@ from app_tutor import app
 from app_tutor import mail
 from app_tutor import bcrypt
 from app_tutor import login_manager
+from werkzeug.exceptions import HTTPException
+
+
+@app.errorhandler(HTTPException)
+def handle_exception(e):
+    """Return JSON instead of HTML for HTTP errors."""
+    # start with the correct headers and status code from the error
+    response = e.get_response()
+    # replace the body with JSON
+    response.data = json.dumps({
+        "code": e.code,
+        "name": e.name,
+        "description": e.description,
+    })
+    response.content_type = "application/json"
+    return response
 
 
 @login_manager.user_loader
@@ -48,34 +64,32 @@ def register():
         status_parents = data['status_parents']
         # Add personal_question (2021-07-13)
         personal_question = data['birthday']
-        try:
-            # Cheking that method is post and form is valid or not.
-            check = Account.query.filter_by(email=email).count()
-            if check == 0:
-                # if all is fine, generate hashed password
-                hashed_password = bcrypt.generate_password_hash(
-                    password).decode('utf-8')
-                # create new user model object
-                new_user = Account(
-                    email=email,
-                    username=username,
-                    password=hashed_password,
-                    phone=' ',
-                    status_tutor=int(status_tutor),
-                    status_student=int(status_student),
-                    status_parents=int(status_parents),
-                    personal_question=personal_question
-                )
-                # saving user object into data base with hashed password
-                db.session.add(new_user)
-                db.session.commit()
-                # flash('You have successfully registered', 'success')
-                # if registration successful, then redirecting to login Api
-                return jsonify(status=True)
-            else:
-                return jsonify(status=False, message='This account is already exists.')
-        except:
-            return jsonify(status=False, message='System error.')
+
+        # Cheking that method is post and form is valid or not.
+        check = Account.query.filter_by(email=email).count()
+        if check == 0:
+            # if all is fine, generate hashed password
+            hashed_password = bcrypt.generate_password_hash(
+                password).decode('utf-8')
+            # create new user model object
+            new_user = Account(
+                email=email,
+                username=username,
+                password=hashed_password,
+                phone=' ',
+                status_tutor=int(status_tutor),
+                status_student=int(status_student),
+                status_parents=int(status_parents),
+                personal_question=personal_question
+            )
+            # saving user object into data base with hashed password
+            db.session.add(new_user)
+            db.session.commit()
+            # flash('You have successfully registered', 'success')
+            # if registration successful, then redirecting to login Api
+            return jsonify(status=True)
+        else:
+            return abort(401, "This email has been used by others.")
 
 
 @app.route('/Login', methods=['GET', 'POST'])
@@ -88,36 +102,33 @@ def login():
         email = data['email']
         password = data['password']
         user_found = Account.query.filter_by(email=email).first()
-        try:
-            if user_found:
-                # if user exist in database than we will compare our database hased password and password come from login form
-                if bcrypt.check_password_hash(user_found.password, password):
-                    # if password is matched, allow user to access and save email and username inside the session
-                    # flash('You have successfully logged in.', "success")
-                    # session testing
-                    # session.permanent -> True，30min expiration
-                    login_user(user_found)
-                    session.permanent = True
-                    session['logged_in'] = True
-                    session['email'] = user_found.email
-                    session['name'] = user_found.username
-                    session['status_tutor'] = user_found.status_tutor
-                    session['status_student'] = user_found.status_student
-                    session['status_parents'] = user_found.status_parents
-                    # After successful login, redirecting to select status page
-                    return jsonify({
-                        'status': True,
-                        'email': session.get('email'),
-                        'status_tutor': session.get('status_tutor'),
-                        'status_student': session.get('status_student'),
-                        'status_parents': session.get('status_parents')
-                    })
-                else:
-                    return jsonify(status=False, message='Wrong password.')
+        if user_found:
+            # if user exist in database than we will compare our database hased password and password come from login form
+            if bcrypt.check_password_hash(user_found.password, password):
+                # if password is matched, allow user to access and save email and username inside the session
+                # flash('You have successfully logged in.', "success")
+                # session testing
+                # session.permanent -> True，30min expiration
+                login_user(user_found)
+                session.permanent = True
+                session['logged_in'] = True
+                session['email'] = user_found.email
+                session['name'] = user_found.username
+                session['status_tutor'] = user_found.status_tutor
+                session['status_student'] = user_found.status_student
+                session['status_parents'] = user_found.status_parents
+                # After successful login, redirecting to select status page
+                return jsonify({
+                    'status': True,
+                    'email': session.get('email'),
+                    'status_tutor': session.get('status_tutor'),
+                    'status_student': session.get('status_student'),
+                    'status_parents': session.get('status_parents')
+                })
             else:
-                return jsonify(status=False, message='User is not found.')
-        except:
-            return jsonify(status=False, message='System error.')
+                return abort(401, "Wrong password.")
+        else:
+            return abort(401, "User is not found.")
 
 
 @app.route('/Logout')
@@ -602,7 +613,7 @@ def attendance(classID):
                            'check_tutor': item.check_tutor, 'check_studet': item.check_student, 'check_parents': item.check_parents, 'note': item.note, 'hrs': item.hrs} for item in query_attendance]
         return jsonify(status=True, classname=query_class_name.className, classID=classID, attendance_item=attendance_lst)
     except:
-        return jsonify(status=False, message='Get attendance info failed.')
+        return abort(400, "Get attendance info failed.")
 
 
 @app.route('/Attendance/note', methods=['PUT'])
@@ -620,7 +631,7 @@ def attendance_note():
         db.session.commit()
         return jsonify(status=True)
     except:
-        return jsonify(status=False, message='Note confirm failed.')
+        return abort(400, "Edit note failed.")
 
 
 @app.route('/Attendance/check', methods=['PUT'])
@@ -643,7 +654,7 @@ def attendance_check():
         db.session.commit()
         return jsonify(status=True)
     except:
-        return jsonify(status=False, message='Attendance confirm failed.')
+        return abort(400, "Update check failed.")
 
 
 @app.route('/Attendance/create', methods=['POST'])
@@ -684,7 +695,7 @@ def create_attendance():
         db.session.commit()
         return jsonify(status=True)
     except:
-        return jsonify(status=False, message='Create new attendance item failed.')
+        return abort(400, message="Create new attendance item failed.")
 
 
 # QA Section
@@ -948,7 +959,7 @@ def forget_password():
     elif request.method == 'POST':
         try:
             if session['logged_in']:
-                return jsonify(status=False, message='User already login.')
+                return abort(406, "User is already login.")
         except KeyError:
             email = request.get_json()['email']
             # Check the user is in the database.
@@ -970,7 +981,7 @@ def forget_password():
                           )
                 return jsonify(status=True)
             else:
-                return jsonify(status=False, message='User is not found.')
+                return abort(401, "User is not found.")
 
 
 def send_async_email(app, msg):
@@ -1004,7 +1015,7 @@ def reset_password():
     if request.method == 'PUT':
         try:
             if session['logged_in']:
-                return jsonify(status=False, message='User already login.')
+                return abort(406, "User is already login.")
         except KeyError:
             email = session.get('reset_user_email')
             query_user_reset_pwd = Account.query.filter_by(email=email).first()
@@ -1019,6 +1030,6 @@ def reset_password():
                     db.session.commit()
                     return jsonify(status=True)
                 else:
-                    return jsonify(status=False, message='ID confirmation failed.')
+                    return abort(401, "ID confirmation failed.")
             else:
-                return jsonify(status=False, message='System error.')
+                return abort(401, "User is not found.")

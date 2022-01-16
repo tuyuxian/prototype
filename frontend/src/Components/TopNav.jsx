@@ -2,20 +2,20 @@ import React from "react";
 import { withRouter } from "react-router";
 import "../assets/style.css";
 import logo from '../assets/logo.png';
-import {useLocation} from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import {
-Navbar, 
-Container,
-Nav,
-Button
+  Navbar,
+  Container,
+  Nav,
+  Button
 } from 'react-bootstrap';
 
 const TopNav = () => {
   let location = useLocation().pathname
-  
+
   return (
     <>
-      <Navbar className="nav-main" collapseOnSelect>
+      <Navbar className="nav-main" collapseOnSelect style={{ position: "sticky", top: "0", left: "0", width: "100%", backgroundColor: "#f0f0fc", zIndex: "100" }}>
         <Container fluid>
           <Navbar.Brand href="/">
             <img
@@ -24,22 +24,22 @@ const TopNav = () => {
               alt="logo"
             />
           </Navbar.Brand>
-          <Navbar.Toggle aria-controls="responsive-navbar-nav"/>
+          <Navbar.Toggle aria-controls="responsive-navbar-nav" />
           <Navbar.Collapse id="responsive-navbar-nav" className="justify-content-end">
             <Nav>
-              { location === "/" &&
+              {location === "/" &&
                 <Nav.Link className="mr-2 ml-1" href="#"> About </Nav.Link>
               }
-              { (location === "/" || location === "/Register" || location === "/register") &&
-                <Button className="btn-nav mx-1 my-1" href="/Login">Login</Button>
+              {(location === "/" || location === "/Register" || location === "/register") &&
+                <Button className="btn-nav mx-1 my-1" href="/Login" style={{ backgroundColor: "#7b68ee", color: "#fafbfc" }}>Login</Button>
               }
-              { (location === "/" || location === "/Login" || location === "/login") &&
+              {(location === "/" || location === "/Login" || location === "/login") &&
                 <Button className="btn-nav mx-1 my-1" href="/Register">Sign Up</Button>
               }
-              { (location.startsWith("/Profile") || location.startsWith("/profile") || location.startsWith("/Edit") || location.startsWith("/edit")) &&
+              {(location.startsWith("/Profile") || location.startsWith("/profile") || location.startsWith("/Edit") || location.startsWith("/edit")) &&
                 <Button className="btn-nav mx-1 my-1" href="/Status">Change</Button>
               }
-              { (location.startsWith("/Profile") || location.startsWith("/profile") || location.startsWith("/Edit") || location.startsWith("/edit")) &&
+              {(location.startsWith("/Profile") || location.startsWith("/profile") || location.startsWith("/Edit") || location.startsWith("/edit")) &&
                 <Button className="btn-nav mx-1 my-1" href="/">Logout</Button>
               }
             </Nav>

@@ -1,5 +1,5 @@
 import axios from './index';
 
-export function register(form) {
+export function registerAccount(form) {
   return axios.post("/Register", form);
 }

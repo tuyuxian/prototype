@@ -12,6 +12,6 @@ export function updateNote(form) {
   return axios.put("/Attendance/note", form);
 }
 
-export function checkNote(form) {
+export function updateCheck(form) {
   return axios.put("/Attendance/check", form);
 }
