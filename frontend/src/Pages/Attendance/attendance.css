@@ -38,13 +38,17 @@ a {
 
 #record{
   float:right;
-  background-color: #7b68ee;
-  border-radius:10px;
-  border-color:#7b68ee ;
-  position: fixed;
-  bottom: 40px;
-  right: 40px; 
-  box-shadow: 7px 7px 14px #cfcfcc, -7px -7px 14px #ffffff;
+    height: 40px;
+    width: 100px;
+    font-size: 18px;
+    font-weight: bold;
+    background-color: #7b68ee;
+    border-radius:20px;
+    border-color:#7b68ee ;
+    position: fixed;
+    bottom: 40px;
+    right: 40px; 
+    box-shadow: 7px 7px 14px #cfcfcc, -7px -7px 14px #ffffff;
 }
 
 /* .modal-content {
@@ -55,14 +59,14 @@ a {
 #modal-button-create{
   float:right;
   background-color: #7b68ee;
-  border-radius:10px;
+  border-radius:20px;
   border-color:#7b68ee ;
 }
 
 
 #modal-button-cancel{
   float:right;
-  border-radius:10px;
+  border-radius:20px;
   /* background-color: #f0f0fc;
   border-color:#f0f0fc ; */
 }

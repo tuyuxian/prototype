@@ -113,10 +113,11 @@ def login():
                 session.permanent = True
                 session['logged_in'] = True
                 session['email'] = user_found.email
-                session['name'] = user_found.username
+                session['username'] = user_found.username
                 session['status_tutor'] = user_found.status_tutor
                 session['status_student'] = user_found.status_student
                 session['status_parents'] = user_found.status_parents
+                session['user_status'] = 1
                 # After successful login, redirecting to select status page
                 return jsonify({
                     'status': True,
@@ -169,7 +170,7 @@ def get_class():
     # api 4.1.1
     email = session.get('email')
     # Fix status missing issue (2021-07-14)
-    user_status = session.get('user_status')
+    user_status = 1  # session.get('user_status')
     if int(user_status) == 1:
         filters_class_tutor = {'tutorEmail': email}
         filters_account = {'email': email}
@@ -184,9 +185,14 @@ def get_class():
                 'payment_hrs': item.payment_hrs,
                 'payment_time': item.payment_time
             } for item in query_class]
-            return render_template('class.html', username=query_account.username, all_class=class_data, user_status=user_status)
+            return jsonify({
+                'status': True,
+                'username': query_account.username,
+                'userStatus': user_status,
+                'allClass': class_data
+            })
         else:
-            return jsonify(status=False, message='No class in this account.')
+            return abort(401, "No class in this account.")
     elif int(user_status) == 2 or int(user_status) == 3:
         filters_class_attender = {'attenderEmail': email}
         filters_account = {'email': email}
@@ -206,9 +212,14 @@ def get_class():
                     'payment_hrs': query_class.payment_hrs,
                     'payment_time': query_class.payment_time
                 })
-            return render_template('class.html', username=query_account.username, all_class=class_data, user_status=user_status)
+            return jsonify({
+                'status': True,
+                'username': query_account.username,
+                'userStatus': user_status,
+                'allClass': class_data
+            })
         else:
-            return jsonify(status=False, message='No class in this account.')
+            return abort(401, "No class in this account.")
 
 
 @app.route('/class/create', methods=['GET', 'POST'])
@@ -609,8 +620,16 @@ def attendance(classID):
         query_attendance = Attendance.query.filter_by(
             **filters_attendance).all()
         query_attendance = sorted(query_attendance, key=lambda x: x.date)
-        attendance_lst = [{'attendanceID': item.attendanceID, 'date': date_type(item.date), 'starttime': time_type(item.starttime), 'endtime': time_type(item.endtime),
-                           'check_tutor': item.check_tutor, 'check_studet': item.check_student, 'check_parents': item.check_parents, 'note': item.note, 'hrs': item.hrs} for item in query_attendance]
+        attendance_lst = [{
+            'attendanceID': item.attendanceID,
+            'date': date_type(item.date),
+            'starttime': time_type(item.starttime),
+            'endtime': time_type(item.endtime),
+            'check_tutor': item.check_tutor,
+            'check_studet': item.check_student,
+            'check_parents': item.check_parents,
+            'note': item.note,
+            'hrs': item.hrs} for item in query_attendance]
         return jsonify(status=True, classname=query_class_name.className, classID=classID, attendance_item=attendance_lst)
     except:
         return abort(400, "Get attendance info failed.")
@@ -671,15 +690,9 @@ def create_attendance():
             return jsonify(status=False, message='Time input error.')
         # Insert new attendance into Attendance table.
         newAttendance = Attendance(
-            classID,
-            date,
-            starttime,
-            endtime,
-            0,
-            0,
-            0,
-            note,
-            hrs_calculate(starttime, endtime))
+            classID, date, starttime, endtime, 0, 0, 0, note, hrs_calculate(
+                starttime, endtime)
+        )
         db.session.add(newAttendance)
         # Insert new attendance into Class_Time table.
         newClassTime = Class_Time(

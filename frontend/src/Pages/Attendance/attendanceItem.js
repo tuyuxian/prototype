@@ -13,7 +13,7 @@ const AttendanceItem = ({ data, noteClick, checkClick, showNote, showCheck, pass
       {data?.attendance_item.map((item, index) => {
         const { attendanceID, check_tutor, hrs, date, note } = item;
         return (
-          <Col md={12} xs={12} key={attendanceID}>
+          <Col md={12} xs={12} key={attendanceID} style={{ padding: "5px" }}>
             <Row id={attendanceID}>
               <Col md={{ span: 1, order: 1, offset: 0 }} xs={{ span: 2, order: 2, offset: -1 }} style={{ display: "flex", flexDirection: "row" }}>
                 {check_tutor ?

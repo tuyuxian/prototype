@@ -5,10 +5,12 @@ import { Container, Row, Col, Button } from "react-bootstrap";
 import NewAttendanceModal from "./attendanceModal";
 import './attendance.css';
 import '../../assets/style.css';
+import SideBar from "../../Components/SideBar";
 
 // get data
 async function getAttendanceData(setData) {
     await getAttendance().then(response => {
+        console.log(response.data);
         setData(response.data);
     }).catch(error => {
         const errors = error.response.data;
@@ -47,10 +49,10 @@ export default function AttendanceMain() {
             <Container fluid>
                 <Row>
                     <Col xs={2} id="sidebar-wrapper">
-                        {/* <SideNav /> */}
+                        <SideBar />
                     </Col>
-                    <Col xs={10} id="page-content-wrapper">
-                        <h1 className='Top'> {data?.classname} </h1>
+                    <Col xs={10} id="page-content-wrapper" style={{ top: "72px", marginTop: "2%" }}>
+                        <h1 className='Top' style={{ marginBottom: "2%" }}> {data?.classname} </h1>
                         <Container fluid id="attendance">
                             <AttendanceItem
                                 data={data}

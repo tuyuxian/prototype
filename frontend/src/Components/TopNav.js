@@ -15,7 +15,7 @@ const TopNav = () => {
 
   return (
     <>
-      <Navbar className="nav-main" collapseOnSelect style={{ position: "sticky", top: "0", left: "0", width: "100%", backgroundColor: "#f0f0fc", zIndex: "100" }}>
+      <Navbar className="nav-main" collapseOnSelect expand="sm" fixed="top" style={{ height: "72px" }}>
         <Container fluid>
           <Navbar.Brand href="/">
             <img
@@ -25,13 +25,13 @@ const TopNav = () => {
             />
           </Navbar.Brand>
           <Navbar.Toggle aria-controls="responsive-navbar-nav" />
-          <Navbar.Collapse id="responsive-navbar-nav" className="justify-content-end">
+          <Navbar.Collapse id="responsive-navbar-nav" className="justify-content-end" bg="black">
             <Nav>
               {location === "/" &&
-                <Nav.Link className="mr-2 ml-1" href="#"> About </Nav.Link>
+                <Nav.Link href="#"> About </Nav.Link>
               }
               {(location === "/" || location === "/Register" || location === "/register") &&
-                <Button className="btn-nav mx-1 my-1" href="/Login" style={{ backgroundColor: "#7b68ee", color: "#fafbfc" }}>Login</Button>
+                <Button className="btn-nav mx-1 my-1" href="/Login">Login</Button>
               }
               {(location === "/" || location === "/Login" || location === "/login") &&
                 <Button className="btn-nav mx-1 my-1" href="/Register">Sign Up</Button>
