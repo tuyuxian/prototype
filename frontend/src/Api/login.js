@@ -1,7 +1,7 @@
 import axios from './index';
 
 export function login(form) {
-  return axios.post("/Login", form);
+  return axios.post("/api/login", form);
 }
 
 export function forgetpwd(form) {

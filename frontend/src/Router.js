@@ -10,7 +10,7 @@ import Reset from './Pages/Login/Reset/resetPage'
 import Profile from './Pages/Profile'
 import Status from './Pages/Profile/Status'
 import Edit from './Pages/Edit'
-import Attendance from './Pages/Attendance/attendancePage'
+import Attendance from './Pages/AttendanceView/attendancePage'
 import ClassView from './Pages/ClassView/classPage'
 
 const Router = () => (

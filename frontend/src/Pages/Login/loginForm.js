@@ -14,7 +14,7 @@ export default function LoginForm() {
         await login(values)
             .then(response => {
                 console.log(response.data);
-                history.push('/Status', response.data);
+                history.push('/class', response.data);
             }).catch((error) => {
                 console.log(error);
                 const errors = error.response.data;

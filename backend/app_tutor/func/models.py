@@ -4,7 +4,7 @@ from flask_login import UserMixin
 from app_tutor import app
 import jwt
 from time import time
-from werkzeug._compat import text_type
+#from werkzeug._compat import text_type
 
 
 class UserMixin(object):

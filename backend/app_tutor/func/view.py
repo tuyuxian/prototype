@@ -4,7 +4,7 @@ import os
 from sqlalchemy.orm import create_session
 from app_tutor.func.models import *
 from app_tutor.func.extension import db, date_calculate, hrs_calculate, get_weekday, time_type, date_type
-from flask import json, render_template, request, jsonify, session, flash, redirect, logging, url_for, abort, send_from_directory
+from flask import json, render_template, request, jsonify, session, flash, redirect, logging, url_for, abort, send_from_directory, make_response
 from flask_login import login_user, logout_user, login_required, current_user
 from flask_mail import Message
 from threading import Thread
@@ -44,16 +44,16 @@ def index():
 def favicon():
     return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
-# @app.errorhandler(404)
-# def not_found(e):
-#     return render_template("index.html")
 
-
-@app.route('/Register', methods=['GET', 'POST'])
-def register():
+@app.route('/register', methods=['GET'])
+def register_get():
     if request.method == 'GET':
         return render_template("index.html")
-    elif request.method == 'POST':
+
+
+@app.route('/api/register', methods=['POST'])
+def api_register_post():
+    if request.method == 'POST':
         # api 1
         data = request.get_json()
         email = data['email']
@@ -85,18 +85,22 @@ def register():
             # saving user object into data base with hashed password
             db.session.add(new_user)
             db.session.commit()
-            # flash('You have successfully registered', 'success')
-            # if registration successful, then redirecting to login Api
-            return jsonify(status=True)
+            return jsonify({
+                'status': True
+            })
         else:
             return abort(401, "This email has been used by others.")
 
 
-@app.route('/Login', methods=['GET', 'POST'])
-def login():
+@app.route('/login', methods=['GET'])
+def login_get():
     if request.method == 'GET':
         return render_template("index.html")
-    elif request.method == 'POST':
+
+
+@app.route('/api/login', methods=['POST'])
+def api_login_post():
+    if request.method == 'POST':
         # api 2
         data = request.get_json()
         email = data['email']
@@ -106,8 +110,6 @@ def login():
             # if user exist in database than we will compare our database hased password and password come from login form
             if bcrypt.check_password_hash(user_found.password, password):
                 # if password is matched, allow user to access and save email and username inside the session
-                # flash('You have successfully logged in.', "success")
-                # session testing
                 # session.permanent -> True，30min expiration
                 login_user(user_found)
                 session.permanent = True
@@ -132,41 +134,50 @@ def login():
             return abort(401, "User is not found.")
 
 
-@app.route('/Logout')
-def logout():
-    # api 2.1
-    # Removing data from session by setting logged_flag to False.
-    session['logged_in'] = False
-    session.clear()
-    logout_user()
-    # redirecting to home page
-    return redirect(url_for('index'))
+@app.route('/api/logout', methods=['POST'])
+def api_logout_post():
+    if request.method == 'POST':
+        # api 2.1
+        # Removing data from session by setting logged_flag to False.
+        session['logged_in'] = False
+        session.clear()
+        logout_user()
+        # redirecting to home page
+        return jsonify({
+            'status': True
+        })
 
 
-@app.route('/Status', methods=['GET', 'POST'])
-def status_select():
-    # api 3
+@app.route('/status', methods=['GET'])
+def status_get():
     if request.method == 'GET':
         return render_template("index.html")
-    #     email = session.get('email')
-    #     status_tutor = session.get('status_tutor')
-    #     status_student = session.get('status_student')
-    #     status_parents = session.get('status_parents')
-    #     return render_template('status.html', status_tutor=status_tutor, status_student=status_student, status_parents=status_parents)
 
+
+@app.route('/api/status', methods=['POST'])
+def api_status_post():
+    # api 3
     if request.method == 'POST':
         email = session.get('email')
         user_found = Account.query.filter_by(email=email).first()
         if user_found:
             user_status = request.get_json()['user_status']
             session['user_status'] = int(user_status)
-            return jsonify(status=True)
+            return jsonify({
+                'status': True,
+                'userStatus': session.get('user_status')
+            })
         else:
-            return jsonify(status=False, message='User is not found.')
+            return abort(401, "User not found.")
 
 
 @app.route('/class', methods=['GET'])
-def get_class():
+def class_get():
+    return render_template('index.html')
+
+
+@app.route('/api/class', methods=['GET'])
+def api_class_get():
     # api 4.1.1
     email = session.get('email')
     # Fix status missing issue (2021-07-14)
@@ -180,10 +191,16 @@ def get_class():
         session['username'] = query_account.username
         if query_class != None:
             class_data = [{
-                'classid': item.classID,
-                'classname': item.className,
+                'id': item.classID,
+                'classId': item.classID,
+                'classTitle': item.className,
                 'payment_hrs': item.payment_hrs,
-                'payment_time': item.payment_time
+                'payment_time': item.payment_time,
+                'classUrl': "http://127.0.0.1:5000/"+item.url,
+                'classStart': '2022/02/01',
+                'classEnd': '2022/3/1',
+                'classWeekday': 'WED / FRI',
+                'classPayment': 500
             } for item in query_class]
             return jsonify({
                 'status': True,
@@ -192,7 +209,12 @@ def get_class():
                 'allClass': class_data
             })
         else:
-            return abort(401, "No class in this account.")
+            return jsonify({
+                'status': True,
+                'username': query_account.username,
+                'userStatus': user_status,
+                'allClass': []
+            })
     elif int(user_status) == 2 or int(user_status) == 3:
         filters_class_attender = {'attenderEmail': email}
         filters_account = {'email': email}
@@ -201,8 +223,8 @@ def get_class():
         query_account = Account.query.filter_by(**filters_account).first()
         # Add username in session (2021-07-15)
         session['username'] = query_account.username
-        class_data = []
         if query_class != None:
+            class_data = []
             for item in query_class:
                 filters_class = {'classID': item.classID}
                 query_class = Class.query.filter_by(**filters_class).first()
@@ -219,22 +241,25 @@ def get_class():
                 'allClass': class_data
             })
         else:
-            return abort(401, "No class in this account.")
+            return jsonify({
+                'status': True,
+                'username': query_account.username,
+                'userStatus': user_status,
+                'allClass': []
+            })
 
 
-@app.route('/class/create', methods=['GET', 'POST'])
-def create_class():
-    if request.method == 'GET':
-        return render_template('class_create.html')
-    elif request.method == 'POST':
+@app.route('/api/class/create', methods=['POST'])
+def api_class_create_post():
+    if request.method == 'POST':
         # api 4.1.2
         tutorEmail = session.get('email')
         className = request.form.get('classname')
-        filters_classname = {'className': className, 'tutorEmail': tutorEmail}
-        query_classname = Class.query.filter_by(**filters_classname).first()
-        if query_classname != None:
+        filtersClassname = {'className': className, 'tutorEmail': tutorEmail}
+        queryClassname = Class.query.filter_by(**filtersClassname).first()
+        if queryClassname != None:
             # Same class name already in this account -> ask user to use another name.
-            return jsonify(status=False, message='This class is already in your account. Use tag like xxx_1 to name the class.')
+            return abort(403, "This class is already in your account. Use tag like xxx_1 to name the class.")
         else:
             try:
                 classID = str(uuid.uuid4())
@@ -259,48 +284,28 @@ def create_class():
                         return jsonify(status=False, message='Time input error.')
                 # Insert new class into three tables.
                 class_init = Class(
-                    classID,
-                    className,
-                    tutorEmail,
-                    int(payment_hrs),
-                    int(payment_time),
-                    url)
+                    classID, className, tutorEmail, int(payment_hrs), int(payment_time), url)
                 class_time = [Class_Time(
-                    classID,
-                    item[0],
-                    item[1],
-                    item[2],
-                    item[3],
-                    ' ',
-                    ' ',
-                    0) for item in all_date]
+                    classID, item[0], item[1], item[2], item[3], ' ', ' ', 0) for item in all_date]
                 attendance = [Attendance(
-                    classID,
-                    item[0],
-                    item[2],
-                    item[3],
-                    0,
-                    0,
-                    0,
-                    ' ',
-                    hrs_calculate(item[2], item[3])) for item in all_date]
+                    classID, item[0], item[2], item[3], 0, 0, 0, ' ', hrs_calculate(item[2], item[3])) for item in all_date]
 
                 db.session.add(class_init)
                 db.session.add_all(class_time)
                 db.session.add_all(attendance)
                 db.session.commit()
-                return redirect(url_for('get_class'))
+                return jsonify({
+                    'status': True
+                })
             except:
-                return jsonify(status=False, message='Create class failed.')
+                return abort(400, "Create class failed.")
 
 
-@ app.route('/class/addmember', methods=['GET', 'POST'])
-def add_member():
-    if request.method == 'GET':
-        return render_template('class_add_member.html')
+@ app.route('/api/class/addmember', methods=['POST'])
+def api_class_addmember_post():
     # api 4.1.3
     # Fix adding invalid user issue. (2021-07-13)
-    elif request.method == 'POST':
+    if request.method == 'POST':
         try:
             data = request.get_json()
             classID = data['classid']
@@ -326,23 +331,33 @@ def add_member():
                 if query_user_check != None and (query_user_check.status_student or query_user_check.status_parents):
                     valid_attender.append(item)
                 elif not (query_user_check.status_student or query_user_check.status_parents):
-                    invalid_attender.append([item, 'Status_locked.'])
+                    # Change the description (2022-03-29)
+                    invalid_attender.append({
+                        'email': item,
+                        'status': 'User status locked.'
+                    })
                 else:
-                    # Change the description (2021-07-14)
-                    invalid_attender.append(
-                        [item, 'This email is not registered.'])
+                    # Change the description (2022-03-29)
+                    invalid_attender.append({
+                        'email': item,
+                        'status': 'Invalid email.'
+                    })
             # Insert new attender into Class_Attender table.
             class_attender = [Class_Attender(classID, item)
                               for item in valid_attender]
             db.session.add_all(class_attender)
             db.session.commit()
-            return jsonify(status=True, duplicate_attender=exist_attender, invalid_attender=invalid_attender)
+            return jsonify({
+                'status': True,
+                'duplicateAttender': exist_attender,
+                'invalidAttender': invalid_attender
+            })
         except:
-            return jsonify(status=False, message='Add member failed.')
+            return abort(400, "Add class member failed.")
 
 
-@ app.route('/class/delete', methods=['DELETE'])
-def delete_class():
+@ app.route('/api/class/delete', methods=['DELETE'])
+def api_class_delete():
     # api 4.1.4
     try:
         data = request.get_json()
@@ -352,23 +367,29 @@ def delete_class():
         Class.query.filter_by(**filters_class_delete).delete()
         Class_Time.query.filter_by(**filters_class_delete).delete()
         db.session.commit()
-        return jsonify(status=True)
+        return jsonify({
+            'status': True
+        })
     except:
-        return jsonify(status=False, message='Delete class failed.')
+        return abort(410, "Delete class failed. The class has gone.")
 
 
-# 2021-07-10
-# Add share_url route (api 4.1.5)
-@ app.route('/class/url', methods=['GET'])
-def share_url():
+# 2022-03-29
+# Add class_url_get route (api 4.1.5)
+@ app.route('/api/class/url', methods=['GET'])
+def api_class_url_get():
     # api 4.1.5
-    try:
-        classID = request.get_json()['classid']
-        filters_share_url = {'classID': classID}
-        url = Class.query.filter_by(**filters_share_url).first()
-        return jsonify(status=True, url=url.url)
-    except:
-        return jsonify(status=False, message='Get url failed.')
+    if request.method == 'GET':
+        try:
+            classID = request.get_json()['classid']
+            filters_share_url = {'classID': classID}
+            url = Class.query.filter_by(**filters_share_url).first()
+            return jsonify({
+                'status': True,
+                'url': url.url
+            })
+        except:
+            return abort(404, "Get class share url failed.")
 
 
 # 2021-07-10
@@ -806,7 +827,7 @@ def myprofile_confirm():
     data = request.get_json()
 
     if query_account_update != None:
-            # Update account info into Account table.
+        # Update account info into Account table.
         DB_pwd = query_account_update.password  # have hashed
         if 'oldpassword' in data:
             oldpassword = data['oldpassword']

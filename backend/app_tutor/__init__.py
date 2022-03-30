@@ -8,7 +8,7 @@ from flask_login import LoginManager
 
 app = Flask(__name__)
 app.config.from_object(Config)
-CORS(app)
+CORS(app, supports_credentials=True)
 db.init_app(app)
 bcrypt = Bcrypt(app)
 mail = Mail(app)

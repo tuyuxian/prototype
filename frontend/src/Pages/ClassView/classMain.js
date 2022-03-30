@@ -5,7 +5,23 @@ import './class.css';
 import SideBar from "../../Components/SideBar";
 import ClassCard from "./classCard";
 import CreateClassModal from "./classCreateModal";
-import { getClass } from "../../Api/class";
+import { classGet } from "../../Api/class";
+
+
+// get data
+async function getClassData(setClassData) {
+    await classGet().then(response => {
+        console.log(response);
+        console.log(response.data);
+        setClassData(response.data.allClass);
+    }).catch(error => {
+        console.log(error);
+        const errors = error.response.data;
+        if (errors.code === 401) {
+            alert(errors.description);
+        };
+    });
+};
 
 export default function ClassMain() {
 
@@ -36,22 +52,10 @@ export default function ClassMain() {
 
     ]);
 
-    // get data
-    async function getClassData(setClassData) {
-        await getClass().then(response => {
-            console.log(response.data);
-            setClassData(response.data);
-        }).catch(error => {
-            const errors = error.response.data;
-            if (errors.code === 401) {
-                alert(errors.description);
-            };
-        });
-    };
 
     useEffect(() => {
         //get
-        getClassData();
+        getClassData(setClassData);
     }, []);
 
     return (
