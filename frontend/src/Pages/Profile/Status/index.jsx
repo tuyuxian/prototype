@@ -13,7 +13,7 @@ class Status extends React.Component {
   render() {
     return (
       <>
-        <div class="sub">
+        <div className="sub">
           <Container fluid>
             <Row className="justify-content-center">
               <Col>

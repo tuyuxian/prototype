@@ -14,7 +14,7 @@ class Home extends React.Component {
   render() {
     return (
       <>
-        <div class="main">
+        <div className="main">
           <Container fluid>
             <Row className="justify-content-center"> 
               <Col>

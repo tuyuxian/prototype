@@ -2,6 +2,11 @@
   background-color: #fafbfc;
 }
 
+.logo-brand {
+  width: 50px;
+  height: 50px;
+}
+
 .logo {
   font-size: 40px;
   font-weight: bold;
@@ -10,11 +15,15 @@
 .btn-nav {
   font-size: 90%;
   color: #7b68ee;
-  width: 6em;
+  width: 5.8em;
   background-color: transparent;
   border-color: #7b68ee;
-  border-radius: .5em;
+  border-radius: 15px;
   border-width: .2em;
+}
+
+.container-fluid {
+  height: 72px;
 }
 
 .main {
@@ -25,10 +34,23 @@
 
 .nav-main {
   background-color: #fafbfc;
+  position: fixed !important;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1;
+  box-shadow: 7px 7px 14px #cfcfcc, -7px -7px 14px #ffffff;
+}
+
+.nav-collapse {
+  align-self: flex-end!important;
 }
 
 .btn-submit {
   background-color: #7b68ee;
+  font-weight: bold;
+  border-radius: 20px;
+  border-color: #7b68ee;
   width: 100%;
   font-size: 20px;
 }
@@ -36,7 +58,7 @@
 .inputbar {
   -webkit-appearance: none;
   border: none;
-  border-radius: 5px;
+  border-radius: 15px;
   background: #fafbfc;
   box-shadow: 7px 7px 14px #cfcfcc, -7px -7px 14px #ffffff;
 }
@@ -49,4 +71,24 @@
 .form-check {
   -webkit-transform: scale(1.3);
   transform: scale(1.3);
+}
+
+.modal-content {
+  border-radius: 20px;
+}
+
+.pro-item-content {
+  color:#000000;
+  size: 36px;
+}
+.pro-icon {
+  color: #000000;
+}
+
+.modal-header {
+  border-bottom: 0 none;
+}
+
+.modal-footer {
+  border-top: 0 none;
 }

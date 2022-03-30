@@ -5,12 +5,12 @@ import "./assets/style.css"
 
 class App extends React.Component {
   componentDidMount() {
-    document.title = "Sam1268";
-  } 
-  render () {
+    document.title = "TutorKit";
+  }
+  render() {
     return (
       <div className="App">
-        <Router/>
+        <Router />
       </div>
     );
   }
