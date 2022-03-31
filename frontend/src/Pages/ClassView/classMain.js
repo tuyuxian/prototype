@@ -11,15 +11,14 @@ import { classGet } from "../../Api/class";
 // get data
 async function getClassData(setClassData) {
     await classGet().then(response => {
-        console.log(response);
-        console.log(response.data);
+        //console.log(response.data);
         setClassData(response.data.allClass);
     }).catch(error => {
         console.log(error);
         const errors = error.response.data;
-        if (errors.code === 401) {
-            alert(errors.description);
-        };
+        // if (errors.code === 401) {
+        //     alert(errors.description);
+        // };
     });
 };
 

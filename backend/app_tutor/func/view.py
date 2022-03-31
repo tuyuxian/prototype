@@ -191,16 +191,17 @@ def api_class_get():
         session['username'] = query_account.username
         if query_class != None:
             class_data = [{
-                'id': item.classID,
-                'classId': item.classID,
-                'classTitle': item.className,
+                'id': item.class_id,
+                'classId': item.class_id,
+                'classTitle': item.class_name,
                 'payment_hrs': item.payment_hrs,
                 'payment_time': item.payment_time,
                 'classUrl': "http://127.0.0.1:5000/"+item.url,
-                'classStart': '2022/02/01',
-                'classEnd': '2022/3/1',
-                'classWeekday': 'WED / FRI',
-                'classPayment': 500
+                'classStart': item.start_date,
+                'classEnd': item.end_date,
+                'classWeekday': " / ",
+                'classPayment': item.payment_amount,
+                'classPaymentMethod': item.payment_method
             } for item in query_class]
             return jsonify({
                 'status': True,
@@ -254,7 +255,8 @@ def api_class_create_post():
     if request.method == 'POST':
         # api 4.1.2
         tutorEmail = session.get('email')
-        className = request.form.get('classname')
+        data = request.get_json()
+        className = data['className']
         filtersClassname = {'className': className, 'tutorEmail': tutorEmail}
         queryClassname = Class.query.filter_by(**filtersClassname).first()
         if queryClassname != None:
@@ -262,40 +264,47 @@ def api_class_create_post():
             return abort(403, "This class is already in your account. Use tag like xxx_1 to name the class.")
         else:
             try:
+                print(request.get_json())
                 classID = str(uuid.uuid4())
-                weekday = request.form.getlist('weekday')
-                starttime = request.form.getlist('starttime')
-                endtime = request.form.getlist('endtime')
-                payment_hrs = request.form.get('payment_hrs')
-                payment_time = request.form.get('payment_time')
-                startdate = request.form.get('startdate')
-                enddate = request.form.get('enddate')
-                starttime = [item for item in starttime if item != '']
-                endtime = [item for item in endtime if item != '']
-                all_date = date_calculate(
-                    startdate, enddate, weekday, starttime, endtime)
-                all_date = [item for item in all_date]
-                # Add url. (2021-07-10)
-                url = secrets.token_urlsafe(10)
-                # Add hours calculate limit. (2021-07-11)
-                for item in all_date:
-                    # Fix hour calculate issue (2021-07-12)
-                    if hrs_calculate(item[2], item[3]) <= 0:
-                        return jsonify(status=False, message='Time input error.')
-                # Insert new class into three tables.
-                class_init = Class(
-                    classID, className, tutorEmail, int(payment_hrs), int(payment_time), url)
-                class_time = [Class_Time(
-                    classID, item[0], item[1], item[2], item[3], ' ', ' ', 0) for item in all_date]
-                attendance = [Attendance(
-                    classID, item[0], item[2], item[3], 0, 0, 0, ' ', hrs_calculate(item[2], item[3])) for item in all_date]
+                weekday = [k for k, v in data['weekday'].items() if v]
+                starttime = data['startTime']
+                endtime = data['endTime']
+                payment_method = data['paymentMethod']
+                payment_amount = data['paymentAmount']
+                startdate = data['startDate']
+                enddate = data['endDate']
+                # starttime = [item for item in starttime if item != '']
+                # endtime = [item for item in endtime if item != '']
+                # all_date = date_calculate(
+                #     startdate, enddate, weekday, starttime, endtime)
+                # all_date = [item for item in all_date]
+                url = 'http://127.0.0.1:5000/' + secrets.token_urlsafe(10)
+                # # Add hours calculate limit. (2021-07-11)
+                # for item in all_date:
+                #     # Fix hour calculate issue (2021-07-12)
+                #     if hrs_calculate(item[2], item[3]) <= 0:
+                #         return jsonify(status=False, message='Time input error.')
+                # # Insert new class into three tables.
+                # class_init = Class(
+                #     classID, className, tutorEmail, int(payment_hrs), int(payment_time), url)
+                # class_time = [Class_Time(
+                #     classID, item[0], item[1], item[2], item[3], ' ', ' ', 0) for item in all_date]
+                # attendance = [Attendance(
+                #     classID, item[0], item[2], item[3], 0, 0, 0, ' ', hrs_calculate(item[2], item[3])) for item in all_date]
 
-                db.session.add(class_init)
-                db.session.add_all(class_time)
-                db.session.add_all(attendance)
-                db.session.commit()
+                # db.session.add(class_init)
+                # db.session.add_all(class_time)
+                # db.session.add_all(attendance)
+                # db.session.commit()
                 return jsonify({
-                    'status': True
+                    'status': True,
+                    'classID': classID,
+                    'classUrl': url,
+                    'className': className,
+                    'classStart': startdate,
+                    'classEnd': enddate,
+                    'classWeekday': weekday,
+                    'classPayment': payment_amount
                 })
             except:
                 return abort(400, "Create class failed.")

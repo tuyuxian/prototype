@@ -2,21 +2,22 @@ import { useState, Fragment } from 'react';
 import { Container, Row, Button, Modal } from "react-bootstrap";
 import { useForm } from "react-hook-form";
 import { TextField, Box, Checkbox, MenuItem, InputAdornment, FormControl, FormGroup, FormControlLabel, FormHelperText } from '@mui/material';
-import { LocalizationProvider, DesktopDateRangePicker, TimePicker } from '@mui/lab';
+import { LocalizationProvider, MobileDateRangePicker, TimePicker } from '@mui/lab';
 import { v4 } from "uuid";
 import AdapterDateFns from '@mui/lab/AdapterDateFns';
+import { classCreate } from '../../Api/class';
 
 const CreateClassModal = ({ show, close, addData }) => {
     const { register, handleSubmit, reset, formState: { errors }, clearErrors } = useForm();
     const onSubmit = handleSubmit(async (data) => {
         var values = {
-            classname: data.className,
-            startdate: data.startDate,
-            enddate: data.endDate,
+            className: data.className,
+            startDate: data.startDate,
+            endDate: data.endDate,
             weekday: dayOption,
-            payment_method: data.paymentMethod,
-            payment_amount: data.paymentAmount,
-            starttime: [
+            paymentMethod: data.paymentMethod,
+            paymentAmount: data.paymentAmount,
+            startTime: [
                 data.mondayStart,
                 data.tuesdayStart,
                 data.wednesdayStart,
@@ -25,7 +26,7 @@ const CreateClassModal = ({ show, close, addData }) => {
                 data.saturdayStart,
                 data.sundayStart
             ],
-            endtime: [
+            endTime: [
                 data.mondayEnd,
                 data.tuesdayEnd,
                 data.wednesdayEnd,
@@ -36,23 +37,26 @@ const CreateClassModal = ({ show, close, addData }) => {
             ]
         };
         console.log(values);
-        console.log(filterDay(Object.values(dayOption)));
-        addData(function (prevData) {
-            // await the post response
-            return [
-                {
-                    id: v4(),
-                    classId: v4(),
-                    classUrl: "https://123.com/" + v4(),
-                    classTitle: values.classname,
-                    classStart: values.startdate,
-                    classEnd: values.enddate,
-                    classWeekday: "FRI",
-                    classPayment: values.payment_amount
-                },
-                ...prevData,
-            ];
-        });
+        await classCreate(values).then(
+            response => {
+                addData(function (prevData) {
+                    // await the post response
+                    return [
+                        {
+                            id: v4(),
+                            classId: response.data.classId,
+                            classUrl: response.data.classUrl,
+                            classTitle: response.data.className,
+                            classStart: response.data.classStart,
+                            classEnd: response.data.classEnd,
+                            classWeekday: response.data.classWeekday,
+                            classPayment: response.data.classPayment
+                        },
+                        ...prevData,
+                    ];
+                });
+            })
+        //console.log(filterDay(Object.values(dayOption)));
         reset({
             className: '',
             startDate: '',
@@ -156,19 +160,20 @@ const CreateClassModal = ({ show, close, addData }) => {
                     </Row>
                     <Row style={{ padding: '5px' }}>
                         <LocalizationProvider dateAdapter={AdapterDateFns}>
-                            <DesktopDateRangePicker
+                            <MobileDateRangePicker
+                                startText="Start Date*"
+                                endText="End Date*"
                                 value={value}
                                 onChange={(newValue) => {
                                     setValue(newValue);
+                                    console.log(newValue);
                                 }}
                                 renderInput={(startProps, endProps) => (
                                     <Fragment>
                                         <TextField
                                             {...startProps}
                                             variant="standard"
-                                            label="Start Date*"
                                             error={!!errors.startDate}
-                                            helperText={errors.startDate && errors.startDate.message}
                                             {...register("startDate", {
                                                 required: "*Required",
                                             })}
@@ -178,9 +183,7 @@ const CreateClassModal = ({ show, close, addData }) => {
                                         <TextField
                                             {...endProps}
                                             variant="standard"
-                                            label="End Date*"
                                             error={!!errors.endDate}
-                                            helperText={errors.endDate && errors.endDate.message}
                                             {...register("endDate", {
                                                 required: "*Required",
                                             })}

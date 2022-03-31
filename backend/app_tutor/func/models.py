@@ -71,25 +71,44 @@ class Account(UserMixin, db.Model):
 
 
 class Class(db.Model):
+    # 2022-03-30 adjust column name and add weekday column
     __tablename__ = 'Class'
-    classID = db.Column(db.String(100), primary_key=True,
-                        unique=True)
-    className = db.Column(db.String(100))
-    tutorEmail = db.Column(db.String(100))
-    payment_hrs = db.Column(db.Integer)
-    payment_time = db.Column(db.Integer)
+    class_id = db.Column(db.String(100), primary_key=True,
+                         unique=True)
+    class_name = db.Column(db.String(100))
+    tutor_email = db.Column(db.String(100))
+    payment_amount = db.Column(db.Integer)
+    payment_method = db.Column(db.Integer)
     url = db.Column(db.String(100))
+    start_date = db.Column(db.Time)
+    end_date = db.Column(db.Time)
+    monday = db.Column(db.Boolean)
+    tuesday = db.Column(db.Boolean)
+    wednesday = db.Column(db.Boolean)
+    thursday = db.Column(db.Boolean)
+    friday = db.Column(db.Boolean)
+    saturday = db.Column(db.Boolean)
+    sunday = db.Column(db.Boolean)
     insert_time = db.Column(db.DateTime, default=datetime.now)
     update_time = db.Column(
         db.DateTime, onupdate=datetime.now, default=datetime.now)
 
-    def __init__(self, classID, className, tutorEmail, payment_hrs, payment_time, url):
-        self.classID = classID
-        self.className = className
-        self.tutorEmail = tutorEmail
-        self.payment_hrs = payment_hrs
-        self.payment_time = payment_time
+    def __init__(self, class_id, class_name, tutor_email, payment_amount, payment_method, url, start_date, end_date, monday, tuesday, wednesday, thursday, friday, saturday, sunday):
+        self.class_id = class_id
+        self.class_name = class_name
+        self.tutor_email = tutor_email
+        self.payment_amount = payment_amount
+        self.payment_method = payment_method
         self.url = url
+        self.start_date = start_date
+        self.end_date = end_date
+        self.monday = monday
+        self.tuesday = tuesday
+        self.wednesday = wednesday
+        self.thursday = thursday
+        self.friday = friday
+        self.saturday = saturday
+        self.sunday = sunday
 
 
 class Class_Attender(db.Model):
