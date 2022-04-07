@@ -28,26 +28,26 @@ export default function ClassMain() {
     const Toggle = () => setShowCreateClassModal(!showCreateClassModal);
 
     const [classData, setClassData] = useState([
-        {
-            id: 1,
-            classId: 1,
-            classUrl: 'https://123.com/1',
-            classTitle: 'Math',
-            classStart: '2022/02/01',
-            classEnd: '2022/3/1',
-            classWeekday: 'WED / FRI',
-            classPayment: 500
-        },
-        {
-            id: 2,
-            classId: 2,
-            classUrl: 'https://123.com/2',
-            classTitle: 'Math',
-            classStart: '2022/02/01',
-            classEnd: '2022/3/1',
-            classWeekday: 'WED / FRI',
-            classPayment: 500
-        },
+        // {
+        //     id: 1,
+        //     classId: 1,
+        //     classUrl: 'https://123.com/1',
+        //     classTitle: 'Math',
+        //     classStart: '2022/02/01',
+        //     classEnd: '2022/3/1',
+        //     classWeekday: 'WED / FRI',
+        //     classPayment: 500
+        // },
+        // {
+        //     id: 2,
+        //     classId: 2,
+        //     classUrl: 'https://123.com/2',
+        //     classTitle: 'Math',
+        //     classStart: '2022/02/01',
+        //     classEnd: '2022/3/1',
+        //     classWeekday: 'WED / FRI',
+        //     classPayment: 500
+        // },
 
     ]);
 

@@ -1,10 +1,9 @@
 import uuid
 import secrets
 import os
-from sqlalchemy.orm import create_session
 from app_tutor.func.models import *
-from app_tutor.func.extension import db, date_calculate, hrs_calculate, get_weekday, time_type, date_type
-from flask import json, render_template, request, jsonify, session, flash, redirect, logging, url_for, abort, send_from_directory, make_response
+from app_tutor.func.extension import *
+from flask import json, render_template, request, jsonify, session, flash, redirect, logging, url_for, abort, send_from_directory
 from flask_login import login_user, logout_user, login_required, current_user
 from flask_mail import Message
 from threading import Thread
@@ -183,7 +182,7 @@ def api_class_get():
     # Fix status missing issue (2021-07-14)
     user_status = 1  # session.get('user_status')
     if int(user_status) == 1:
-        filters_class_tutor = {'tutorEmail': email}
+        filters_class_tutor = {'tutor_email': email}
         filters_account = {'email': email}
         query_class = Class.query.filter_by(**filters_class_tutor).all()
         query_account = Account.query.filter_by(**filters_account).first()
@@ -194,12 +193,10 @@ def api_class_get():
                 'id': item.class_id,
                 'classId': item.class_id,
                 'classTitle': item.class_name,
-                'payment_hrs': item.payment_hrs,
-                'payment_time': item.payment_time,
                 'classUrl': "http://127.0.0.1:5000/"+item.url,
-                'classStart': item.start_date,
-                'classEnd': item.end_date,
-                'classWeekday': " / ",
+                'classStart': date_type(item.start_date),
+                'classEnd': date_type(item.end_date),
+                'classWeekday': " / ".join(db_weekday_transform([item.monday, item.tuesday, item.wednesday, item.thursday, item.friday, item.saturday, item.sunday])),
                 'classPayment': item.payment_amount,
                 'classPaymentMethod': item.payment_method
             } for item in query_class]
@@ -217,7 +214,7 @@ def api_class_get():
                 'allClass': []
             })
     elif int(user_status) == 2 or int(user_status) == 3:
-        filters_class_attender = {'attenderEmail': email}
+        filters_class_attender = {'attender_email': email}
         filters_account = {'email': email}
         query_class = Class_Attender.query.filter_by(
             **filters_class_attender).all()
@@ -227,13 +224,18 @@ def api_class_get():
         if query_class != None:
             class_data = []
             for item in query_class:
-                filters_class = {'classID': item.classID}
+                filters_class = {'class_id': item.class_id}
                 query_class = Class.query.filter_by(**filters_class).first()
                 class_data.append({
-                    'classid': query_class.classID,
-                    'classname': query_class.className,
-                    'payment_hrs': query_class.payment_hrs,
-                    'payment_time': query_class.payment_time
+                    'id': item.class_id,
+                    'classId': item.class_id,
+                    'classTitle': item.class_name,
+                    'classUrl': "http://127.0.0.1:5000/"+item.url,
+                    'classStart': date_type(item.start_date),
+                    'classEnd': date_type(item.end_date),
+                    'classWeekday': " / ".join(db_weekday_transform([item.monday, item.tuesday, item.wednesday, item.thursday, item.friday, item.saturday, item.sunday])),
+                    'classPayment': item.payment_amount,
+                    'classPaymentMethod': item.payment_method
                 })
             return jsonify({
                 'status': True,
@@ -254,57 +256,88 @@ def api_class_get():
 def api_class_create_post():
     if request.method == 'POST':
         # api 4.1.2
-        tutorEmail = session.get('email')
+        tutor_email = session.get('email')
         data = request.get_json()
-        className = data['className']
-        filtersClassname = {'className': className, 'tutorEmail': tutorEmail}
-        queryClassname = Class.query.filter_by(**filtersClassname).first()
-        if queryClassname != None:
+        class_name = data['className']
+        filters_classname = {'class_name': class_name,
+                             'tutor_email': tutor_email}
+        query_classname = Class.query.filter_by(**filters_classname).first()
+        if query_classname != None:
             # Same class name already in this account -> ask user to use another name.
             return abort(403, "This class is already in your account. Use tag like xxx_1 to name the class.")
         else:
             try:
-                print(request.get_json())
-                classID = str(uuid.uuid4())
+                class_id = str(uuid.uuid4())
                 weekday = [k for k, v in data['weekday'].items() if v]
-                starttime = data['startTime']
-                endtime = data['endTime']
+                # for db update usage
+                db_weekday_update = [v for k, v in data['weekday'].items()]
                 payment_method = data['paymentMethod']
                 payment_amount = data['paymentAmount']
-                startdate = data['startDate']
-                enddate = data['endDate']
-                # starttime = [item for item in starttime if item != '']
-                # endtime = [item for item in endtime if item != '']
-                # all_date = date_calculate(
-                #     startdate, enddate, weekday, starttime, endtime)
-                # all_date = [item for item in all_date]
-                url = 'http://127.0.0.1:5000/' + secrets.token_urlsafe(10)
-                # # Add hours calculate limit. (2021-07-11)
-                # for item in all_date:
-                #     # Fix hour calculate issue (2021-07-12)
-                #     if hrs_calculate(item[2], item[3]) <= 0:
-                #         return jsonify(status=False, message='Time input error.')
-                # # Insert new class into three tables.
-                # class_init = Class(
-                #     classID, className, tutorEmail, int(payment_hrs), int(payment_time), url)
-                # class_time = [Class_Time(
-                #     classID, item[0], item[1], item[2], item[3], ' ', ' ', 0) for item in all_date]
-                # attendance = [Attendance(
-                #     classID, item[0], item[2], item[3], 0, 0, 0, ' ', hrs_calculate(item[2], item[3])) for item in all_date]
+                start_date = data['startDate']
+                end_date = data['endDate']
+                start_time = [
+                    item for item in data['startTime'] if item != None]
+                end_time = [item for item in data['endTime'] if item != None]
+                all_date = [item for item in date_calculate(
+                    start_date, end_date, weekday, start_time, end_time)]
+                url = secrets.token_urlsafe(10)
+                # Insert new class into three tables.
+                class_init = Class(
+                    class_id,
+                    class_name,
+                    tutor_email,
+                    int(payment_amount),
+                    int(payment_method),
+                    url,
+                    date_type_switch(start_date),
+                    date_type_switch(end_date),
+                    db_weekday_update[0],
+                    db_weekday_update[1],
+                    db_weekday_update[2],
+                    db_weekday_update[3],
+                    db_weekday_update[4],
+                    db_weekday_update[5],
+                    db_weekday_update[6]
+                )
+                class_time = [Class_Time(
+                    class_id,
+                    _date,
+                    _weekday,
+                    _start_time,
+                    _end_time,
+                    '',
+                    '',
+                    0
+                ) for _date, _weekday, _start_time, _end_time in all_date]
+                attendance = [Attendance(
+                    class_id,
+                    _date,
+                    _start_time,
+                    _end_time,
+                    0,
+                    0,
+                    0,
+                    '',
+                    hrs_calculate(_start_time, _end_time)
+                ) for _date, _weekday, _start_time, _end_time in all_date]
 
                 # db.session.add(class_init)
+                # db.session.commit()
                 # db.session.add_all(class_time)
+                # db.session.commit()
                 # db.session.add_all(attendance)
                 # db.session.commit()
                 return jsonify({
                     'status': True,
-                    'classID': classID,
-                    'classUrl': url,
-                    'className': className,
-                    'classStart': startdate,
-                    'classEnd': enddate,
-                    'classWeekday': weekday,
-                    'classPayment': payment_amount
+                    'id': class_id,
+                    'classId': class_id,
+                    'classTitle': class_name,
+                    'classUrl': "http://127.0.0.1:5000/" + url,
+                    'classStart': start_date,
+                    'classEnd': end_date,
+                    'classWeekday': " / ".join(weekday),
+                    'classPayment': payment_amount,
+                    'classPaymentMethod': payment_method
                 })
             except:
                 return abort(400, "Create class failed.")
@@ -317,21 +350,22 @@ def api_class_addmember_post():
     if request.method == 'POST':
         try:
             data = request.get_json()
-            classID = data['classid']
-            attenderemail = data['attenderemail'].split(',')
-            filters_attenderemail = {'classID': classID}
-            query_attenderemail = [item.attenderEmail for item in Class_Attender.query.filter_by(
-                **filters_attenderemail).all()]
-
-            # Check whether attender is in the class.
+            class_id = data['classId']
+            attenderemail = data['attenderEmail']
+            filters_class = {'class_id': class_id}
+            query_attenderemail = [item.attender_email for item in Class_Attender.query.filter_by(
+                **filters_class).all()]
+            # Check whether attenders are in the class.
             new_attender = []
             exist_attender = []
             for item in attenderemail:
-                if item not in query_attenderemail:
-                    new_attender.append(item)
+                if item['email'] not in query_attenderemail:
+                    new_attender.append(item['email'])
                 else:
-                    exist_attender.append(item)
-
+                    exist_attender.append({
+                        'email': item['email'],
+                        'status': 'User already in this class.'
+                    })
             # Check whether user is in the db. (invalid user issue)
             valid_attender = []
             invalid_attender = []
@@ -339,7 +373,7 @@ def api_class_addmember_post():
                 query_user_check = Account.query.filter_by(email=item).first()
                 if query_user_check != None and (query_user_check.status_student or query_user_check.status_parents):
                     valid_attender.append(item)
-                elif not (query_user_check.status_student or query_user_check.status_parents):
+                elif query_user_check != None and not (query_user_check.status_student or query_user_check.status_parents):
                     # Change the description (2022-03-29)
                     invalid_attender.append({
                         'email': item,
@@ -352,8 +386,8 @@ def api_class_addmember_post():
                         'status': 'Invalid email.'
                     })
             # Insert new attender into Class_Attender table.
-            class_attender = [Class_Attender(classID, item)
-                              for item in valid_attender]
+            class_attender = [Class_Attender(class_id, attender)
+                              for attender in valid_attender]
             db.session.add_all(class_attender)
             db.session.commit()
             return jsonify({
@@ -367,20 +401,20 @@ def api_class_addmember_post():
 
 @ app.route('/api/class/delete', methods=['DELETE'])
 def api_class_delete():
-    # api 4.1.4
-    try:
-        data = request.get_json()
-        classID = data['classid']
-        filters_class_delete = {'classID': classID}
-        # Keep the record in Attendance, Class_Attender and QA tables.
-        Class.query.filter_by(**filters_class_delete).delete()
-        Class_Time.query.filter_by(**filters_class_delete).delete()
-        db.session.commit()
-        return jsonify({
-            'status': True
-        })
-    except:
-        return abort(410, "Delete class failed. The class has gone.")
+    if request.method == 'DELETE':
+        # api 4.1.4
+        try:
+            data = request.get_json()
+            class_id = data['classId']
+            filters_class_delete = {'class_id': class_id}
+            # delete data in other DBs related to class_id (Cascade)
+            Class.query.filter_by(**filters_class_delete).delete()
+            db.session.commit()
+            return jsonify({
+                'status': True
+            })
+        except:
+            return abort(410, "Delete class failed. The class has gone.")
 
 
 # 2022-03-29

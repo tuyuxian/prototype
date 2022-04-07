@@ -4,7 +4,6 @@ from flask_login import UserMixin
 from app_tutor import app
 import jwt
 from time import time
-#from werkzeug._compat import text_type
 
 
 class UserMixin(object):
@@ -80,8 +79,8 @@ class Class(db.Model):
     payment_amount = db.Column(db.Integer)
     payment_method = db.Column(db.Integer)
     url = db.Column(db.String(100))
-    start_date = db.Column(db.Time)
-    end_date = db.Column(db.Time)
+    start_date = db.Column(db.Date)
+    end_date = db.Column(db.Date)
     monday = db.Column(db.Boolean)
     tuesday = db.Column(db.Boolean)
     wednesday = db.Column(db.Boolean)
@@ -113,27 +112,30 @@ class Class(db.Model):
 
 class Class_Attender(db.Model):
     __tablename__ = 'Class_Attender'
-    classattenderID = db.Column(
+    classattender_id = db.Column(
         db.Integer, primary_key=True, autoincrement=True)
-    classID = db.Column(db.String(100))
-    attenderEmail = db.Column(db.String(100))
+    class_id = db.Column(db.String(100), db.ForeignKey(
+        'Class.class_id', ondelete='CASCADE'))
+    attender_email = db.Column(db.String(100), db.ForeignKey(
+        'Account.email', ondelete='CASCADE'))
     insert_time = db.Column(db.DateTime, default=datetime.now)
     update_time = db.Column(
         db.DateTime, onupdate=datetime.now, default=datetime.now)
 
-    def __init__(self, classID, attenderEmail):
-        self.classID = classID
-        self.attenderEmail = attenderEmail
+    def __init__(self, class_id, attender_email):
+        self.class_id = class_id
+        self.attender_email = attender_email
 
 
 class Class_Time(db.Model):
     __tablename__ = 'Class_Time'
-    classtimeID = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    classID = db.Column(db.String(100))
+    classtime_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    class_id = db.Column(db.String(100), db.ForeignKey(
+        'Class.class_id', ondelete='CASCADE'))
     date = db.Column(db.Date)
     weekday = db.Column(db.String(15))
-    starttime = db.Column(db.Time)
-    endtime = db.Column(db.Time)
+    start_time = db.Column(db.Time)
+    end_time = db.Column(db.Time)
     lesson = db.Column(db.String(100))
     hw = db.Column(db.String(100))
     done = db.Column(db.Boolean)  # 2021-07-10 add "done" column.
@@ -141,12 +143,12 @@ class Class_Time(db.Model):
     update_time = db.Column(
         db.DateTime, onupdate=datetime.now, default=datetime.now)
 
-    def __init__(self, classID, date, weeday, starttime, endtime, lesson, hw, done):
-        self.classID = classID
+    def __init__(self, class_id, date, weeday, start_time, end_time, lesson, hw, done):
+        self.class_id = class_id
         self.date = date
         self.weekday = weeday
-        self.starttime = starttime
-        self.endtime = endtime
+        self.start_time = start_time
+        self.end_time = end_time
         self.lesson = lesson
         self.hw = hw
         self.done = done
@@ -154,11 +156,12 @@ class Class_Time(db.Model):
 
 class Attendance(db.Model):
     __tablename__ = 'Attendance'
-    attendanceID = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    classID = db.Column(db.String(100))
+    attendance_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    class_id = db.Column(db.String(100), db.ForeignKey(
+        'Class.class_id', ondelete='CASCADE'))
     date = db.Column(db.Date)
-    starttime = db.Column(db.Time)
-    endtime = db.Column(db.Time)
+    start_time = db.Column(db.Time)
+    end_time = db.Column(db.Time)
     check_tutor = db.Column(db.Boolean)
     check_student = db.Column(db.Boolean)
     check_parents = db.Column(db.Boolean)
@@ -168,11 +171,11 @@ class Attendance(db.Model):
     update_time = db.Column(
         db.DateTime, onupdate=datetime.now, default=datetime.now)
 
-    def __init__(self, classID, date, starttime, endtime, check_tutor, check_student, check_parents, note, hrs):
-        self.classID = classID
+    def __init__(self, class_id, date, start_time, end_time, check_tutor, check_student, check_parents, note, hrs):
+        self.class_id = class_id
         self.date = date
-        self.starttime = starttime
-        self.endtime = endtime
+        self.start_time = start_time
+        self.end_time = end_time
         self.check_tutor = check_tutor
         self.check_student = check_student
         self.check_parents = check_parents

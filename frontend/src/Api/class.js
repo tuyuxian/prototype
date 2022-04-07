@@ -13,6 +13,7 @@ export function classAddMember(form) {
 }
 
 export function classDelete(form) {
-    return axios.delete("/api/class/delete", form);
+    // axios delete method need to add request body manually.
+    return axios.delete("/api/class/delete", { data: form });
 }
 

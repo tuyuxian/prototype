@@ -8,15 +8,48 @@ import { TextField, Alert, IconButton, Fade } from '@mui/material';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
 import InviteCard from "./inviteCard";
 import { v4 } from "uuid";
+import { classAddMember } from "../../Api/class";
 
-const InviteClassModal = ({ show, close, classUrl }) => {
-    const { handleSubmit, reset, clearErrors, control } = useForm();
+const InviteClassModal = ({ show, close, classId, classUrl }) => {
+    const { handleSubmit, reset, clearErrors, control } = useForm({});
 
     const [userData, setUserData] = useState([]);
     const [open, setOpen] = useState(false);
     const [url] = useState(classUrl);
-    const onSubmit = handleSubmit((data) => {
-        console.log(userData);
+    const onSubmit = handleSubmit(async () => {
+        var values = {
+            classId: classId,
+            attenderEmail: userData
+        };
+        //console.log(values);
+        await classAddMember(values).then(
+            response => {
+                //console.log(response.data);
+                var output = "";
+                response.data.duplicateAttender?.map((item) => {
+                    const { email, status } = item;
+                    output += status + ": " + email + '\n';
+                });
+                response.data.invalidAttender?.map((item) => {
+                    const { email, status } = item;
+                    output += status + ": " + email + '\n';
+                });
+                if (output !== "") {
+                    alert(output);
+                }
+                setUserData([]);
+                reset({
+                    email: '',
+                });
+                clearErrors(["email"]);
+                close();
+            }
+        ).catch((error) => {
+            const errors = error.response.data;
+            if (errors.code === 400) {
+                alert(errors.description);
+            }
+        });
     });
 
     const onEnter = handleSubmit((data) => {
@@ -69,7 +102,8 @@ const InviteClassModal = ({ show, close, classUrl }) => {
                 setUserData([]); reset({
                     email: '',
                 });
-                clearErrors(["email"]); close();
+                clearErrors(["email"]);
+                close();
             }}
             fullscreen={'sm-down'}
             backdrop="static"
@@ -82,10 +116,12 @@ const InviteClassModal = ({ show, close, classUrl }) => {
                     </IconButton>
                 </CopyToClipboard>
                 <IconButton aria-label="delete" onClick={() => {
-                    setUserData([]); reset({
+                    setUserData([]);
+                    reset({
                         email: '',
                     });
-                    clearErrors(["email"]); close();
+                    clearErrors(["email"]);
+                    close();
                 }}>
                     <ClearIcon sx={{ color: '#c92a2a' }} />
                 </IconButton>
@@ -128,7 +164,7 @@ const InviteClassModal = ({ show, close, classUrl }) => {
                 </Row>
                 <Col style={{ justifyContent: 'space-between' }}>
                     <Container fluid style={{ position: 'relative', top: '220px' }}>
-                        {userData.map((item) => {
+                        {userData?.map((item) => {
                             const { id, email } = item;
                             return (
                                 <InviteCard key={id} id={id} email={email} deleteData={setUserData} />

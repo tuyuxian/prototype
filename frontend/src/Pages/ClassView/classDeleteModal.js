@@ -1,14 +1,24 @@
 import { useForm } from "react-hook-form";
 import { Button, Modal } from "react-bootstrap";
+import { classDelete } from "../../Api/class";
 
 const DeleteClassModal = ({ id, show, close, classId, deleteData }) => {
     const { handleSubmit } = useForm();
     const onSubmit = handleSubmit(async (data) => {
         var values = {
-            classid: classId
+            classId: classId
         };
-        console.log(values);
-        deleteItem();
+        await classDelete(values).then(
+            response => {
+                console.log(response.data);
+                deleteItem();
+            }
+        ).catch((error) => {
+            const errors = error.response.data;
+            if (errors.code === 410) {
+                alert(errors.description);
+            }
+        });
     });
 
     function deleteItem() {
