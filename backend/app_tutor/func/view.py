@@ -321,12 +321,12 @@ def api_class_create_post():
                     hrs_calculate(_start_time, _end_time)
                 ) for _date, _weekday, _start_time, _end_time in all_date]
 
-                # db.session.add(class_init)
-                # db.session.commit()
-                # db.session.add_all(class_time)
-                # db.session.commit()
-                # db.session.add_all(attendance)
-                # db.session.commit()
+                db.session.add(class_init)
+                db.session.commit()
+                db.session.add_all(class_time)
+                db.session.commit()
+                db.session.add_all(attendance)
+                db.session.commit()
                 return jsonify({
                     'status': True,
                     'id': class_id,
@@ -335,7 +335,7 @@ def api_class_create_post():
                     'classUrl': "http://127.0.0.1:5000/" + url,
                     'classStart': start_date,
                     'classEnd': end_date,
-                    'classWeekday': " / ".join(weekday),
+                    'classWeekday': " / ".join(db_weekday_transform(db_weekday_update)),
                     'classPayment': payment_amount,
                     'classPaymentMethod': payment_method
                 })
