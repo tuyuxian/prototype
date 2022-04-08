@@ -29,7 +29,7 @@ def date_calculate(startdate, enddate, weekday, starttime, endtime):
     time_dic = {}
     for i in range(len(weekday)):
         time_dic[weekday[i]] = [starttime[i], endtime[i]]
-    actual_date = [[(startdate+datetime.timedelta(i)).strftime('%Y-%m-%d'), week[str((startdate+datetime.timedelta(i)).weekday())], time_type_switch(time_dic[week[str((startdate+datetime.timedelta(i)).weekday())]][0]), time_type_switch(time_dic[week[str((startdate+datetime.timedelta(i)).weekday())]][1])]
+    actual_date = [[(startdate+datetime.timedelta(i)).strftime('%Y-%m-%d'), week[str((startdate+datetime.timedelta(i)).weekday())], time_dic[week[str((startdate+datetime.timedelta(i)).weekday())]][0], time_dic[week[str((startdate+datetime.timedelta(i)).weekday())]][1]]
                    for i in range(period+1) if (i+startdate.weekday()) % 7 in week_lst]
     return actual_date
 
@@ -85,7 +85,6 @@ def time_type(time):
 
 
 def db_weekday_transform(weekday_list):
-    import datetime
     """
         :type weekday_list: List[int]
         :rtype weekday_name: List[str]
