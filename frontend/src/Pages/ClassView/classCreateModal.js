@@ -1,90 +1,90 @@
-import { useState, useEffect, Fragment } from 'react'
+import { useState, Fragment } from 'react'
 import { Container, Row, Button, Modal } from "react-bootstrap";
 import { useForm, Controller } from "react-hook-form";
-import { TextField, Box, Checkbox, MenuItem, InputAdornment, FormControl, FormGroup, FormControlLabel, FormHelperText } from '@mui/material';
+import { TextField, Box, Checkbox, MenuItem, InputAdornment, FormControl, FormLabel, FormGroup, FormControlLabel, FormHelperText } from '@mui/material';
 import moment from 'moment';
 import { classCreate } from '../../Api/class';
 
 const CreateClassModal = ({ show, close, addData }) => {
-    const { register, handleSubmit, reset, setValue, formState: { errors }, setError, clearErrors } = useForm({ 'mondayStart': '', 'mondayEnd': '' });
+    const { register, unregister, handleSubmit, reset, formState: { errors }, setError, clearErrors } = useForm();
     const onSubmit = handleSubmit(async (data) => {
-        console.log(data);
-        var values = {
-            className: data.className,
-            // startDate: dateRange[0].toLocaleDateString("en-US"),
-            // endDate: dateRange[1].toLocaleDateString("en-US"),
-            weekday: dayOption,
-            paymentMethod: data.paymentMethod,
-            paymentAmount: data.paymentAmount,
-            startTime: [
-                data.mondayStart,
-                data.tuesdayStart,
-                data.wednesdayStart,
-                data.thursdayStart,
-                data.fridayStart,
-                data.saturdayStart,
-                data.sundayStart
-            ],
-            endTime: [
-                data.mondayEnd,
-                data.tuesdayEnd,
-                data.wednesdayEnd,
-                data.thursdayEnd,
-                data.fridayEnd,
-                data.saturdayEnd,
-                data.sundayEnd
-            ]
-        };
-        console.log(values);
-        await classCreate(values).then(
-            response => {
-                addData(function (prevData) {
-                    // await the post response
-                    return [
-                        {
-                            id: response.data.classId,
-                            classId: response.data.classId,
-                            classUrl: response.data.classUrl,
-                            classTitle: response.data.classTitle,
-                            classStart: response.data.classStart,
-                            classEnd: response.data.classEnd,
-                            classWeekday: response.data.classWeekday,
-                            classPayment: response.data.classPayment
-                        },
-                        ...prevData,
-                    ];
-                });
-                reset({
-                    className: '',
-                    startDate: '',
-                    endDate: '',
-                    paymentMethod: '',
-                    paymentAmount: '',
-                });
-                setDayOption({
-                    monday: false,
-                    tuesday: false,
-                    wednesday: false,
-                    thursday: false,
-                    friday: false,
-                    saturday: false,
-                    sunday: false
-                });
-                clearErrors(["className", "startDate", "endDate", "paymentMethod", "paymentAmount"]);
-                close();
-            }).catch((error) => {
-                const errors = error.response.data;
-                if (errors.code === 403) {
-                    setError('className', {
-                        type: "server",
-                        message: errors.description,
+        if (dateRangeValidate(data) && timeRangeValidate(data)) {
+            var values = {
+                className: data.className,
+                startDate: data.startDate,
+                endDate: data.endDate,
+                weekday: dayOption,
+                paymentMethod: data.paymentMethod,
+                paymentAmount: data.paymentAmount,
+                startTime: [
+                    data.mondayStart,
+                    data.tuesdayStart,
+                    data.wednesdayStart,
+                    data.thursdayStart,
+                    data.fridayStart,
+                    data.saturdayStart,
+                    data.sundayStart
+                ],
+                endTime: [
+                    data.mondayEnd,
+                    data.tuesdayEnd,
+                    data.wednesdayEnd,
+                    data.thursdayEnd,
+                    data.fridayEnd,
+                    data.saturdayEnd,
+                    data.sundayEnd
+                ]
+            };
+            //console.log(values);
+            await classCreate(values).then(
+                response => {
+                    addData(function (prevData) {
+                        // await the post response
+                        return [
+                            {
+                                id: response.data.classId,
+                                classId: response.data.classId,
+                                classUrl: response.data.classUrl,
+                                classTitle: response.data.classTitle,
+                                classStart: response.data.classStart,
+                                classEnd: response.data.classEnd,
+                                classWeekday: response.data.classWeekday,
+                                classPayment: response.data.classPayment
+                            },
+                            ...prevData,
+                        ];
                     });
-                };
-                if (errors.code === 400) {
-                    alert(errors.description);
-                };
-            });
-        //console.log(filterDay(Object.values(dayOption)));
+                    reset({
+                        className: '',
+                        startDate: '',
+                        endDate: '',
+                        paymentMethod: '',
+                        paymentAmount: '',
+                    });
+                    setDayOption({
+                        monday: false,
+                        tuesday: false,
+                        wednesday: false,
+                        thursday: false,
+                        friday: false,
+                        saturday: false,
+                        sunday: false
+                    });
+                    clearErrors(["className", "startDate", "endDate", "paymentMethod", "paymentAmount"]);
+                    close();
+                }).catch((error) => {
+                    const errors = error.response.data;
+                    if (errors.code === 403) {
+                        setError('className', {
+                            type: "server",
+                            message: errors.description,
+                        });
+                    };
+                    if (errors.code === 400) {
+                        alert(errors.description);
+                    };
+                });
+        }
     });
     const [dayOption, setDayOption] = useState({
         monday: false,
@@ -100,9 +100,11 @@ const CreateClassModal = ({ show, close, addData }) => {
             ...dayOption,
             [event.target.name]: event.target.checked,
         });
+        unregister(event.target.startprop);
+        unregister(event.target.endprop);
     };
     const { monday, tuesday, wednesday, thursday, friday, saturday, sunday } = dayOption;
-    var dayObject = [
+    const dayObject = [
         {
             itemLabel: "Monday",
             itemShow: monday,
@@ -168,14 +170,43 @@ const CreateClassModal = ({ show, close, addData }) => {
         }
     ];
     const checkboxError = [monday, tuesday, wednesday, thursday, friday, saturday, sunday].filter((v) => v).length === 0;
-    // function filterDay(prev) {
-    //     return prev.filter(item => item !== false)
-    // };
-
-    // useEffect(() => {
-    //     setValue('startDate', dateRange[0])
-    //     setValue('endDate', dateRange[1])
-    // }, [dateRange])
+    const dateRangeValidate = (data) => {
+        const { startDate, endDate } = data;
+        if (moment(startDate, "MM-DD-YYYY") >= moment(endDate, "MM-DD-YYYY")) {
+            setError('endDate', {
+                type: "custom",
+                message: "End Date needs to later than Start Date",
+            });
+            return false;
+        } else {
+            return true;
+        }
+    };
+    const timeRangeValidate = (data) => {
+        if (checkboxError) {
+            alert("At least pick one weekday");
+            return false;
+        } else {
+            let hasError = false;
+            dayObject.map((item) => {
+                const { itemShow, registerStartName, registerEndName } = item;
+                if (itemShow) {
+                    if (moment(data[registerStartName], "hh:mm") >= moment(data[registerEndName], "hh:mm")) {
+                        hasError = true;
+                        setError(registerEndName, {
+                            type: "custom",
+                            message: "End Time needs to be later than Start Time",
+                        });
+                    }
+                }
+            });
+            if (hasError) {
+                return false;
+            } else {
+                return true;
+            }
+        }
+    };
 
     return (
         <Modal
@@ -192,7 +223,7 @@ const CreateClassModal = ({ show, close, addData }) => {
             <Modal.Body >
                 <Container>
                     <Row style={{ padding: '5px', fontSize: '12px' }}>
-                        <span>*Required field</span>
+                        <FormHelperText>*Required field</FormHelperText>
                     </Row>
                     <Row style={{ padding: '5px' }}>
                         <TextField
@@ -224,13 +255,13 @@ const CreateClassModal = ({ show, close, addData }) => {
                                 })}
                                 sx={{ width: '200px' }}
                             />
-                            <Box sx={{ width: '37px', display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}> to </Box>
+                            <Box sx={{ width: '37px', display: 'flex', justifyContent: 'space-around', alignItems: 'center', paddingTop: '10px' }}> to </Box>
                             <TextField
                                 error={!!errors.endDate}
                                 label="End Date*"
                                 variant="standard"
                                 helperText={errors.endDate && errors.endDate.message}
-                                placeholder="HH:MM"
+                                placeholder="MM/DD/YYYY"
                                 {...register("endDate", {
                                     required: "Required",
                                     pattern: {
@@ -241,48 +272,6 @@ const CreateClassModal = ({ show, close, addData }) => {
                                 sx={{ width: '200px' }}
                             />
                         </Fragment>
-                        {/* <LocalizationProvider dateAdapter={AdapterDateFns}>
-                            <MobileDateRangePicker
-                                startText="Start Date*"
-                                endText="End Date*"
-                                value={dateRange}
-                                onChange={(value) => {
-                                    setDateRange(value);
-                                }}
-                                renderInput={(startProps, endProps) => {
-                                    (
-                                        <Fragment>
-                                            <TextField
-                                                {...startProps}
-                                                variant="standard"
-                                                error={!!errors.startDate}
-                                                {...register("startDate", {
-                                                    required: "*Required",
-                                                })}
-                                                helperText={errors.startDate && errors.startDate.message}
-                                                ref={startProps.inputRef}
-                                                sx={{ width: '200px' }}
-                                            />
-                                            <Box sx={{ width: '37px', display: 'flex', justifyContent: 'space-around' }}> to </Box>
-                                            <TextField
-                                                {...endProps}
-                                                variant="standard"
-                                                error={!!errors.endDate}
-                                                {...register("endDate", {
-                                                    required: "*Required",
-                                                })}
-                                                helperText={errors.endDate && errors.endDate.message}
-                                                ref={endProps.inputRef}
-                                                sx={{ width: '200px' }}
-                                            />
-                                        </Fragment>
-                                    )
-                                }}
-                            />
-                        </LocalizationProvider> */}
-                    </Row>
-                    <Row style={{ padding: '5px', fontSize: '12px' }}>
-                        {checkboxError && <span>*Choose at least one day</span>}
                     </Row>
                     <FormControl
                         required
@@ -290,6 +279,12 @@ const CreateClassModal = ({ show, close, addData }) => {
                         component="fieldset"
                         variant="standard"
                     >
+                        {/* <Row style={{ padding: '5px', fontSize: '12px', marginTop: '5px' }}>
+                        {checkboxError && <FormHelperText>*At least pick one weekday</FormHelperText>}
+                    </Row> */}
+                        <Row style={{ paddingLeft: '5px', fontSize: '12px', alignItems: 'center', marginTop: '5px' }}>
+                            <FormHelperText>*At least pick one weekday</FormHelperText>
+                        </Row>
                         {dayObject.map((item, index) => {
                             const { itemLabel, itemShow, itemName, registerStartName, registerEndName, errorStartName, errorEndName } = item;
                             return (
@@ -297,7 +292,7 @@ const CreateClassModal = ({ show, close, addData }) => {
                                     <FormGroup>
                                         <FormControlLabel
                                             control={
-                                                <Checkbox checked={itemShow} onChange={handleChange} name={itemName} />
+                                                <Checkbox checked={itemShow} onChange={handleChange} name={itemName} startprop={registerStartName} endprop={registerEndName} />
                                             }
                                             label={itemLabel}
                                             sx={{ width: '130px', marginTop: '10px' }}
