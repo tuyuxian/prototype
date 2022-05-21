@@ -1,7 +1,7 @@
 import { useState, Fragment } from 'react'
 import { Container, Row, Button, Modal } from "react-bootstrap";
-import { useForm, Controller } from "react-hook-form";
-import { TextField, Box, Checkbox, MenuItem, InputAdornment, FormControl, FormLabel, FormGroup, FormControlLabel, FormHelperText } from '@mui/material';
+import { useForm } from "react-hook-form";
+import { TextField, Box, Checkbox, MenuItem, InputAdornment, FormControl, FormGroup, FormControlLabel, FormHelperText } from '@mui/material';
 import moment from 'moment';
 import { classCreate } from '../../Api/class';
 
@@ -38,8 +38,8 @@ const CreateClassModal = ({ show, close, addData }) => {
             //console.log(values);
             await classCreate(values).then(
                 response => {
+                    // await the post response
                     addData(function (prevData) {
-                        // await the post response
                         return [
                             {
                                 id: response.data.classId,
@@ -279,9 +279,6 @@ const CreateClassModal = ({ show, close, addData }) => {
                         component="fieldset"
                         variant="standard"
                     >
-                        {/* <Row style={{ padding: '5px', fontSize: '12px', marginTop: '5px' }}>
-                        {checkboxError && <FormHelperText>*At least pick one weekday</FormHelperText>}
-                    </Row> */}
                         <Row style={{ paddingLeft: '5px', fontSize: '12px', alignItems: 'center', marginTop: '5px' }}>
                             <FormHelperText>*At least pick one weekday</FormHelperText>
                         </Row>

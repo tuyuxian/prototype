@@ -14,21 +14,21 @@ def date_calculate(startdate, enddate, weekday, starttime, endtime):
         :rtype class_date: List[List[]]
     """
     week = {
-        'monday': 0,    '0': 'monday',
-        'tuesday': 1,   '1': 'tuesday',
-        'wednesday': 2, '2': 'wednesday',
-        'thursday': 3,  '3': 'thursday',
-        'friday': 4,    '4': 'friday',
-        'saturday': 5,  '5': 'saturday',
-        'sunday': 6,    '6': 'sunday'
+        'monday': 0,    '0': 'MON',
+        'tuesday': 1,   '1': 'TUE',
+        'wednesday': 2, '2': 'WED',
+        'thursday': 3,  '3': 'THU',
+        'friday': 4,    '4': 'FRI',
+        'saturday': 5,  '5': 'SAT',
+        'sunday': 6,    '6': 'SUN'
     }
     startdate = datetime.datetime.strptime(startdate, '%m/%d/%Y')
     enddate = datetime.datetime.strptime(enddate, '%m/%d/%Y')
     period = int((enddate - startdate).days)
     week_lst = [week[item] for item in weekday]
     time_dic = {}
-    for i in range(len(weekday)):
-        time_dic[weekday[i]] = [starttime[i], endtime[i]]
+    for i in range(len(week_lst)):
+        time_dic[week[str(week_lst[i])]] = [starttime[i], endtime[i]]
     actual_date = [[(startdate+datetime.timedelta(i)).strftime('%Y-%m-%d'), week[str((startdate+datetime.timedelta(i)).weekday())], time_dic[week[str((startdate+datetime.timedelta(i)).weekday())]][0], time_dic[week[str((startdate+datetime.timedelta(i)).weekday())]][1]]
                    for i in range(period+1) if (i+startdate.weekday()) % 7 in week_lst]
     return actual_date
@@ -81,7 +81,7 @@ def time_type(time):
         :type date: datetime
         :rtype date: str
     """
-    return datetime.time.strftime(time, '%H:%M:%S')
+    return datetime.time.strftime(time, '%H:%M')
 
 
 def db_weekday_transform(weekday_list):

@@ -29,7 +29,7 @@
 .main {
   height: 100vh;
   background-color: #fafbfc;
-  background: linear-gradient(to bottom, #fafbfc 0%, #fafbfc 50%, #f0f0fc 50%, #f0f0fc  100%);
+  background: linear-gradient(to bottom, #fafbfc 0%, #fafbfc 50%, #f0f0fc 50%, #f0f0fc 100%);
 }
 
 .nav-main {
@@ -39,11 +39,11 @@
   left: 0;
   width: 100%;
   z-index: 1;
-  box-shadow: 7px 7px 14px #cfcfcc, -7px -7px 14px #ffffff;
+  box-shadow: 4px 4px 8px #cfcfcc, -4px -4px 8px #ffffff;
 }
 
 .nav-collapse {
-  align-self: flex-end!important;
+  align-self: flex-end !important;
 }
 
 .btn-submit {
@@ -78,9 +78,10 @@
 }
 
 .pro-item-content {
-  color:#000000;
+  color: #000000;
   size: 36px;
 }
+
 .pro-icon {
   color: #000000;
 }

@@ -12,6 +12,7 @@ import Status from './Pages/Profile/Status'
 import Edit from './Pages/Edit'
 import Attendance from './Pages/AttendanceView/attendancePage'
 import ClassView from './Pages/ClassView/classPage'
+import TodoView from './Pages/TodoView/todoMain'
 
 const Router = () => (
   <BrowserRouter>
@@ -28,6 +29,8 @@ const Router = () => (
         <Route exact path='/attendance' component={Attendance} />
         <Route exact path='/class' component={ClassView} />
         <Route exact path='/edit' component={Edit} />
+        <Route exact path='/todo/upcoming' component={TodoView} />
+        <Route exact path='/todo/done' component={TodoView} />
       </Switch>
       {/* <Route path='/' component={Footer} /> */}
     </div>

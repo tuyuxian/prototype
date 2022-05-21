@@ -435,243 +435,317 @@ def api_class_url_get():
             return abort(404, "Get class share url failed.")
 
 
-# 2021-07-10
-# Seperate todolist page to
-# todolist (api 4.2.1)
-# todolist/upcoming (api 4.2.7)
-# todolist/done (api 4.2.8)
-@ app.route('/todolist', methods=['GET'])
-def todolist():
+@app.route('/todo', methods=['GET'])
+def todo_get():
+    return render_template('index.html')
+
+
+@app.route('/api/todo', methods=['GET'])
+def api_todo_get():
     # api 4.2.1
     # Use session to get email and status.
     email = session.get('email')
+    # 1 for tutor, 2 for student and 3 for parents.
     user_status = session.get('user_status')
     username = session.get('username')
-    case = user_status  # 1 for tutor, 2 for student and 3 for parents.
-    if int(case) == 1:
+    if int(user_status) == 1:
         try:
-            filters_tutor = {'tutorEmail': email}
+            filters_tutor = {'tutor_email': email}
             query_class = Class.query.filter_by(**filters_tutor).all()
             class_dic = {
-                item.className: item.classID for item in query_class}
-            return render_template('todolist.html', class_list=class_dic, username=username)
+                item.class_name: item.class_id for item in query_class}
+            return jsonify({
+                'status': True,
+                'username': username,
+                'classList': class_dic
+            })
         except:
-            return jsonify(status=False, message='Get todolist failed.')
-    elif (int(case) == 2) or (int(case) == 3):
+            return abort(403, 'Get todo data failed.')
+    elif (int(user_status) == 2) or (int(user_status) == 3):
         try:
-            filters_attender = {'attenderEmail': email}
+            filters_attender = {'attender_email': email}
             query_class = Class_Attender.query.filter_by(
                 **filters_attender).all()
             class_dic = {}
             for item in query_class:
-                filters_classid = {'classID': item.classID}
+                filters_classid = {'class_id': item.class_id}
                 query_class_name = Class.query.filter_by(
                     **filters_classid).first()
-                class_dic[query_class_name.className] = item.classID
-            return render_template('todolist.html', class_list=class_dic, username=username, user_status=user_status)
+                class_dic[query_class_name.class_name] = item.class_id
+            return jsonify({
+                'status': True,
+                'username': username,
+                'classList': class_dic
+            })
         except:
-            return jsonify(status=False, message='Get todolist failed.')
+            return abort(403, 'Get todo data failed.')
 
 
-@app.route('/todolist/upcoming', methods=['GET', 'POST', 'PUT'])
-def todolist_upcoming():
+@app.route('/todo/upcoming', methods=['GET'])
+def todo_upcoming_get():
+    return render_template('index.html')
+
+
+@app.route('/api/todo/upcoming', methods=['GET', 'POST', 'PUT'])
+def api_todo_upcoming():
     # api 4.2.7
     if request.method == 'GET':
-        user_status = session.get('user_status')
+        #user_status = session.get('user_status')
         try:
-            classID = request.get_json()['classid']
-            filters_classid = {'classID': classID}
+            #class_id = request.get_json()['classId']
+            class_id = "a29bcced-8654-4c80-bee9-80bd135f29c8"
+            filters_classid = {'class_id': class_id}
             query_todo = Class_Time.query.filter_by(**filters_classid).all()
+            query_todo = sorted(query_todo, key=lambda x: x.date)
             query_class_name = Class.query.filter_by(**filters_classid).first()
-            todo_lst = []
+            todo_lst_upcoming = []
+            item_count = 0
             for item in query_todo:
                 if item.done == 0:  # 0 for upcoming ; 1 for done.
-                    todo = {
-                        'classtimeID': item.classtimeID,
-                        'classid': item.classID,
+                    todo_lst_upcoming.append({
+                        'id': item_count,
+                        'classtimeId': item.classtime_id,
                         'date': date_type(item.date),
                         'weekday': item.weekday,
-                        'starttime': time_type(item.starttime),
-                        'endtime': time_type(item.endtime),
+                        'startTime': time_type(item.start_time),
+                        'endTime': time_type(item.end_time),
                         'lesson': item.lesson,
-                        'hw': item.hw
-                    }
-                    todo_lst.append(todo)
-            return render_template('todolist.html', classname=query_class_name.className, todo_item=todo_lst, user_status=user_status)
+                        'hw': item.hw,
+                        'todoStatus': item.done
+                    })
+                    item_count += 1
+            return jsonify({
+                'status': True,
+                'classId': class_id,
+                'className': query_class_name.class_name,
+                'todoItemUpcoming': todo_lst_upcoming,
+                'todoUnit': item_count
+            })
         except:
-            return jsonify(status=False, message='Get todolist upcoming failed.')
-
+            return abort(400, 'Get upcoming todo item failed.')
     # api 4.2.2
     elif request.method == 'PUT':
-        try:
-            data = request.get_json()
-            classtimeID = data['classtimeid']
-            classID = data['classid']
-            date = data['date']
-            starttime = data['starttime']
-            endtime = data['endtime']
-            lesson = data['lesson']
-            hw = data['hw']
-            if hrs_calculate(starttime, endtime) <= 0:
-                return jsonify(status=False, message='Time input error.')
-            # Update new info into Class_Time table.
-            filters_todolist_update = {'classtimeID': classtimeID}
-            query_todolist_update = Class_Time.query.filter_by(
-                **filters_todolist_update).first()
-            query_todolist_update.date = date
-            query_todolist_update.starttime = starttime
-            query_todolist_update.endtime = endtime
-            query_todolist_update.lesson = lesson
-            query_todolist_update.hw = hw
-            # Update new info into Attendance table.
-            # attendanceID == classtimeID
-            filters_attendance_update = {'attendanceID': classtimeID}
-            query_attendance_update = Attendance.query.filter_by(
-                **filters_attendance_update).first()
-            query_attendance_update.date = date
-            query_attendance_update.starttime = starttime
-            query_attendance_update.endtime = endtime
-            query_attendance_update.hrs = hrs_calculate(starttime, endtime)
-            db.session.commit()
-            return jsonify(status=True)
-        except:
-            return jsonify(status=False, message='Create todolist failed.')
+        # try:
+        data = request.get_json()
+        classtime_id = data['classtimeId']
+        date = data['date']
+        start_time = data['startTime']
+        end_time = data['endTime']
+        lesson = data['lesson']
+        hw = data['hw']
+        # Update new info into Class_Time table.
+        filters_todo_update = {'classtime_id': classtime_id}
+        query_todolist_update = Class_Time.query.filter_by(
+            **filters_todo_update).first()
+        query_todolist_update.date = date
+        query_todolist_update.start_time = start_time
+        query_todolist_update.end_time = end_time
+        query_todolist_update.lesson = lesson
+        query_todolist_update.hw = hw
+        # Update new info into Attendance table.
+        # attendance_id is equal to classtime_id
+        filters_attendance_update = {'attendance_id': classtime_id}
+        query_attendance_update = Attendance.query.filter_by(
+            **filters_attendance_update).first()
+        query_attendance_update.date = date
+        query_attendance_update.start_time = start_time
+        query_attendance_update.end_time = end_time
+        query_attendance_update.hrs = hrs_calculate(start_time, end_time)
+        db.session.commit()
+        return jsonify({
+            'status': True,
+            'classtimeId': query_todolist_update.classtime_id,
+            'date': date_type(query_todolist_update.date),
+            'weekday': query_todolist_update.weekday,
+            'startTime': time_type(query_todolist_update.start_time),
+            'endTime': time_type(query_todolist_update.end_time),
+            'lesson': query_todolist_update.lesson,
+            'hw': query_todolist_update.hw,
+            'todoStatus': query_todolist_update.done
+        })
+        # except:
+        #     return abort(400, 'Update todo item failed.')
     # api 4.2.3
+    # create new todo item
     elif request.method == 'POST':
         try:
             data = request.get_json()
-            classID = data['classid']
+            class_id = data['classId']
             date = data['date']
-            starttime = data['starttime']
-            endtime = data['endtime']
+            start_time = data['startTime']
+            end_time = data['endTime']
             lesson = data['lesson']
             hw = data['hw']
-            if hrs_calculate(starttime, endtime) <= 0:
-                return jsonify(status=False, message='Time input error.')
             # Insert new todolist into Class_Time table.
             newClassTime = Class_Time(
-                classID,
-                date,
-                get_weekday(date),
-                starttime,
-                endtime,
+                class_id,
+                date_type_switch(date),
+                get_weekday(date_type_switch(date)),
+                start_time,
+                end_time,
                 lesson,
                 hw,
                 0)
             db.session.add(newClassTime)
+            db.session.commit()
             # Insert new attendance into Attendance table.
             newAttendance = Attendance(
-                classID,
-                date,
-                starttime,
-                endtime,
+                class_id,
+                date_type_switch(date),
+                start_time,
+                end_time,
                 0,
                 0,
                 0,
-                ' ',
-                hrs_calculate(starttime, endtime))
+                '',
+                hrs_calculate(start_time, end_time))
             db.session.add(newAttendance)
             db.session.commit()
-            return jsonify(status=True)
+            filters_classid = {'class_id': class_id}
+            query_class_name = Class.query.filter_by(**filters_classid).first()
+            filters_todo_add = {'class_id': class_id}
+            query_todo = Class_Time.query.filter_by(
+                **filters_todo_add).all()
+            query_todo = sorted(query_todo, key=lambda x: x.date)
+            todo_lst_upcoming_new = []
+            item_count = 0
+            for item in query_todo:
+                if item.done == 0:  # 0 for upcoming ; 1 for done.
+                    todo_lst_upcoming_new.append({
+                        'id': item_count,
+                        'classtimeId': item.classtime_id,
+                        'date': date_type(item.date),
+                        'weekday': item.weekday,
+                        'startTime': time_type(item.start_time),
+                        'endTime': time_type(item.end_time),
+                        'lesson': item.lesson,
+                        'hw': item.hw,
+                        'todoStatus': item.done
+                    })
+                    item_count += 1
+            return jsonify({
+                'status': True,
+                'classId': class_id,
+                'className': query_class_name.class_name,
+                'todoItemUpcoming': todo_lst_upcoming_new,
+                'todoUnit': item_count
+            })
         except:
-            return jsonify(status=False, message='Create todolist failed.')
+            return abort(400, 'Create todo item failed.')
 
 
-# 2021-07-10
-# Add route
-# todolist/upcoming/delete (api 4.2.4)
-# todolist/upcoming/finished (api 4.2.5)
-# todolist/done/undo (api 4.2.6)
-@app.route('/todolist/upcoming/delete', methods=['DELETE'])
-def delete_todolist():
+@app.route('/api/todo/upcoming/delete', methods=['DELETE'])
+def api_todo_upcoming_delete():
     # api 4.2.4
+    # Delete todo item will also delete attendance item.
     try:
         data = request.get_json()
-        classtimeID = data['classtimeid']
-        # Delete todolist item directly will also delete attendance item.
-        filters_todolist_delete = {'classtimeID': classtimeID}
-        filters_attendance_delete = {'attendanceID': classtimeID}
-        Class_Time.query.filter_by(**filters_todolist_delete).delete()
+        classtime_id = data['classtimeId']
+        filters_todo_delete = {'classtime_id': classtime_id}
+        filters_attendance_delete = {'attendance_id': classtime_id}
+        Class_Time.query.filter_by(**filters_todo_delete).delete()
+        db.session.commit()
         Attendance.query.filter_by(**filters_attendance_delete).delete()
         db.session.commit()
-        return jsonify(status=True)
+        return jsonify({
+            'status': True
+        })
     except:
-        return jsonify(status=False, message='Delete todolist failed.')
+        return abort(400, 'Delete todo item failed.')
 
 
-@app.route('/todolist/upcoming/finished', methods=['POST'])
-def finished_todolist():
+@app.route('/api/todo/upcoming/finish', methods=['POST'])
+def api_todo_upcoming_finish():
     # api 4.2.5
     try:
         data = request.get_json()
-        classtimeID = data['classtimeid']
+        classtime_id = data['classtimeId']
         # Update the data to Todolist_Done table first.
-        filters_todolist_done = {'classtimeID': classtimeID}
-        query_todolist_done = Class_Time.query.filter_by(
-            **filters_todolist_done).first()
-        todolist_backup = Todolist_Done(
-            query_todolist_done.classtimeID,
-            query_todolist_done.classID,
-            date_type(query_todolist_done.date),
-            get_weekday(date_type(query_todolist_done.date)),
-            time_type(query_todolist_done.starttime),
-            time_type(query_todolist_done.endtime),
-            query_todolist_done.lesson,
-            query_todolist_done.hw)
-        db.session.add(todolist_backup)
+        filters_todo_done = {'classtime_id': classtime_id}
+        query_todo_done = Class_Time.query.filter_by(
+            **filters_todo_done).first()
+        todo_backup = Todolist_Done(
+            query_todo_done.classtime_id,
+            query_todo_done.class_id,
+            query_todo_done.date,
+            get_weekday(date_type(query_todo_done.date)),
+            query_todo_done.start_time,
+            query_todo_done.end_time,
+            query_todo_done.lesson,
+            query_todo_done.hw)
+        db.session.add(todo_backup)
         # Update the "done" column of the classtime item in Class_Time
-        query_todolist_done.done = 1
+        query_todo_done.done = 1
         db.session.commit()
-        return jsonify(status=True)
+        return jsonify({
+            'status': True
+        })
     except:
-        return jsonify(status=False, message='Todo item done failed.')
+        return abort(400, 'Finish todo item failed.')
 
 
-@app.route('/todolist/done', methods=['GET'])
-def todolist_done():
+@app.route('/todo/done', methods=['GET'])
+def todo_done_get():
+    return render_template('index.html')
+
+
+@app.route('/api/todo/done', methods=['GET'])
+def api_todo_done_get():
     # api 4.2.8
     try:
-        classID = request.get_json()['classid']
-        filters_classid = {'classID': classID}
+        #class_id = request.get_json()['classId']
+        class_id = "a29bcced-8654-4c80-bee9-80bd135f29c8"
+        filters_classid = {'class_id': class_id}
         query_todo = Class_Time.query.filter_by(**filters_classid).all()
+        query_todo = sorted(query_todo, key=lambda x: x.date)
         query_class_name = Class.query.filter_by(**filters_classid).first()
-        todo_lst = []
+        todo_lst_done = []
+        item_count = 0
         for item in query_todo:
             if item.done == 1:  # 0 for upcoming ; 1 for done.
-                todo = {
-                    'classtimeID': item.classtimeID,
-                    'classid': item.classID,
+                todo_lst_done.append({
+                    'id': item_count,
+                    'classtimeId': item.classtime_id,
                     'date': date_type(item.date),
                     'weekday': item.weekday,
-                    'starttime': time_type(item.starttime),
-                    'endtime': time_type(item.endtime),
+                    'startTime': time_type(item.start_time),
+                    'endTime': time_type(item.end_time),
                     'lesson': item.lesson,
-                    'hw': item.hw
-                }
-                todo_lst.append(todo)
-        return jsonify(status=True, classname=query_class_name.className, todo_item_done=todo_lst)
+                    'hw': item.hw,
+                    'todoStatus': item.done
+                })
+                item_count += 1
+        return jsonify({
+            'status': True,
+            'classId': class_id,
+            'className': query_class_name.class_name,
+            'todoItemDone': todo_lst_done,
+            'todoUnit': item_count
+        })
     except:
-        return jsonify(status=False, message='Get todolist done failed.')
+        return abort(400, 'Get done todo item failed.')
 
 
-@app.route('/todolist/done/undo', methods=['PUT'])
-def recover_todolist():
+@app.route('/api/todo/done/undo', methods=['PUT'])
+def api_todo_done_undo():
     # api 4.2.6
     try:
-        origin_classtimeID = request.get_json()['classtimeid']
+        origin_classtime_id = request.get_json()['classtimeId']
         # Recover the data to Class_Time table first.
-        filters_todolist_undo = {'classtimeID': origin_classtimeID}
-        query_todolist_undo = Class_Time.query.filter_by(
-            **filters_todolist_undo).first()
-        query_todolist_undo.done = 0
+        filters_todo_undo = {'classtime_id': origin_classtime_id}
+        query_todo_undo = Class_Time.query.filter_by(
+            **filters_todo_undo).first()
+        query_todo_undo.done = 0
         # Delete the data in Todolist_Done
-        filters_todolist_done_delete = {
-            'origin_classtimeID': origin_classtimeID}
-        Todolist_Done.query.filter_by(**filters_todolist_done_delete).delete()
+        filters_todo_done_delete = {
+            'origin_classtime_id': origin_classtime_id}
+        Todolist_Done.query.filter_by(**filters_todo_done_delete).delete()
         db.session.commit()
-        return jsonify(status=True)
+        return jsonify({
+            'status': True
+        })
     except:
-        return jsonify(status=False, message='Recover todo item failed.')
+        return abort(400, 'Undo todo item failed.')
 
 
 @app.route('/Attendance/<classID>', methods=['GET'])

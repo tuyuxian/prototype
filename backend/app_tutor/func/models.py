@@ -206,25 +206,26 @@ class QA(db.Model):
 # Add "Todolist_Done" table model.
 class Todolist_Done(db.Model):
     __tablename__ = 'Todolist_Done'
-    origin_classtimeID = db.Column(db.Integer, primary_key=True)
-    classID = db.Column(db.String(100))
+    origin_classtime_id = db.Column(db.Integer, primary_key=True)
+    class_id = db.Column(db.String(100), db.ForeignKey(
+        'Class.class_id', ondelete='CASCADE'))
     date = db.Column(db.Date)
     weekday = db.Column(db.String(15))
-    starttime = db.Column(db.Time)
-    endtime = db.Column(db.Time)
+    start_time = db.Column(db.Time)
+    end_time = db.Column(db.Time)
     lesson = db.Column(db.String(100))
     hw = db.Column(db.String(100))
     insert_time = db.Column(db.DateTime, default=datetime.now)
     update_time = db.Column(
         db.DateTime, onupdate=datetime.now, default=datetime.now)
 
-    def __init__(self, origin_classtimeID, classID, date, weeday, starttime, endtime, lesson, hw):
-        self.origin_classtimeID = origin_classtimeID
-        self.classID = classID
+    def __init__(self, origin_classtime_id, class_id, date, weeday, start_time, end_time, lesson, hw):
+        self.origin_classtime_id = origin_classtime_id
+        self.class_id = class_id
         self.date = date
         self.weekday = weeday
-        self.starttime = starttime
-        self.endtime = endtime
+        self.start_time = start_time
+        self.end_time = end_time
         self.lesson = lesson
         self.hw = hw
 
